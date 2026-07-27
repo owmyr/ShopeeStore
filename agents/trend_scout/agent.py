@@ -107,6 +107,7 @@ def _write_report(report: TrendReport) -> Path:
                 "sold_count": ap.product.sold_count,
                 "rating": ap.product.rating,
                 "theme": ap.theme,
+                "image_url": ap.product.image_url,
             }
             for ap in report.products
         ],

@@ -79,9 +79,22 @@ with st.sidebar:
     if st.button("Dry-run (5 products)"):
         start_agent(["--dry-run", "--force"], "agent_run_now.log")
         st.success("Dry-run started. Refresh in ~1 minute.")
+    if st.button("Harvest images now"):
+        log_path = get_settings().data_dir / "agent_run_now.log"
+        log_file = open(log_path, "ab")  # noqa: SIM115
+        subprocess.Popen(  # noqa: S603
+            [sys.executable, "-m", "agents.image_harvester.agent", "--force"],
+            cwd=PROJECT_ROOT,
+            stdout=log_file,
+            stderr=subprocess.STDOUT,
+            creationflags=subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS,
+        )
+        st.success("Harvest started. Refresh in ~1 minute.")
     st.caption("Logs: data/agent_run_now.log")
 
-tab_ledger, tab_trends = st.tabs(["Agent ledger", "Latest trends"])
+tab_ledger, tab_trends, tab_gallery = st.tabs(
+    ["Agent ledger", "Latest trends", "Image gallery"]
+)
 
 with tab_ledger:
     df = load_ledger()
@@ -125,3 +138,39 @@ with tab_trends:
                 width="stretch",
                 hide_index=True,
             )
+
+with tab_gallery:
+    images_dir = get_settings().data_dir / "images"
+    report_dir = latest_report_dir()
+    if not images_dir.exists() or not any(images_dir.glob("*.jpg")):
+        st.info("No images yet - run the Image Harvester (sidebar).")
+    else:
+        meta: dict[int, dict] = {}
+        if report_dir is not None:
+            payload = json.loads((report_dir / "report.json").read_text(encoding="utf-8"))
+            meta = {p["item_id"]: p for p in payload["products"]}
+
+        cards = []
+        for img in sorted(images_dir.glob("*.jpg")):
+            item_id = int(img.stem)
+            info = meta.get(item_id, {})
+            cards.append(
+                {
+                    "path": img,
+                    "sold": info.get("sold_count", 0),
+                    "theme": info.get("theme") or "(unclustered)",
+                    "price": info.get("price_cents", 0),
+                }
+            )
+        cards.sort(key=lambda c: c["sold"], reverse=True)
+
+        themes = sorted({c["theme"] for c in cards})
+        chosen = st.multiselect("Filter by theme", themes, default=themes)
+        shown = [c for c in cards if c["theme"] in chosen][:24]
+        st.caption(f"{len(shown)} of {len(cards)} images (top by sold)")
+
+        cols = st.columns(4)
+        for i, card in enumerate(shown):
+            with cols[i % 4]:
+                caption = f"{card['theme']} | {card['sold']} sold | {brl(card['price'])}"
+                st.image(str(card["path"]), caption=caption, width="stretch")

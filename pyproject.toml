@@ -19,6 +19,7 @@ dependencies = [
     "matplotlib>=3.8",
     "pydantic>=2.5",
     "pydantic-settings>=2.1",
+    "httpx>=0.27",
 ]
 
 [project.optional-dependencies]
@@ -28,7 +29,7 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["core", "agents", "agents.trend_scout", "dashboard"]
+packages = ["core", "agents", "agents.trend_scout", "agents.image_harvester", "dashboard"]
 
 [tool.ruff]
 target-version = "py311"

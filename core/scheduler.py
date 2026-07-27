@@ -14,6 +14,7 @@ from datetime import UTC, datetime, timedelta
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 
+from agents.image_harvester import agent as image_harvester
 from agents.trend_scout import agent as trend_scout
 from core.config import get_settings
 
@@ -47,6 +48,11 @@ def _job() -> None:
         _mark_last_run()
     except Exception:
         log.exception("scheduled trend scout run failed")
+        return
+    try:
+        image_harvester.run_once()  # chain: images for the fresh report
+    except Exception:
+        log.exception("scheduled image harvest failed")
 
 
 def self_heal(max_age_days: int = SELF_HEAL_MAX_AGE_DAYS) -> bool:

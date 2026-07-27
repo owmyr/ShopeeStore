@@ -35,6 +35,19 @@ class PriceSnapshot(SQLModel, table=True):
     run_id: str = Field(index=True)  # agent_ledger run that captured this
 
 
+class ProductImage(SQLModel, table=True):
+    """Downloaded image for a product (one row per product, latest wins)."""
+
+    __tablename__ = "product_image"
+
+    id: int | None = Field(default=None, primary_key=True)
+    product_id: int = Field(foreign_key="product.id", index=True)
+    path: str
+    theme: str = ""
+    downloaded_at: datetime
+    run_id: str = Field(index=True)  # image_harvester run that downloaded it
+
+
 class AgentLedger(SQLModel, table=True):
     """One row per agent run (observability / supervision surface)."""
 

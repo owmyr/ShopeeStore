@@ -20,6 +20,8 @@ def main() -> int:
     sub.add_parser("dashboard", help="launch Streamlit supervision UI")
     sub.add_parser("schedule", help="start weekly scheduler (blocking)")
     sub.add_parser("login", help="one-time Shopee login (opens browser)")
+    harvest = sub.add_parser("harvest", help="download top product images")
+    harvest.add_argument("--max", type=int, default=50, help="max images (default 50)")
     args = parser.parse_args()
 
     if args.command in ("run", "run-now"):
@@ -48,6 +50,16 @@ def main() -> int:
 
         path = login()
         print(f"session saved to {path}")
+        return 0
+
+    if args.command == "harvest":
+        import logging
+
+        logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+        from agents.image_harvester.agent import run_once as harvest_once
+
+        out = harvest_once(max_images=args.max)
+        print(f"images: {out}")
         return 0
 
     return 1
