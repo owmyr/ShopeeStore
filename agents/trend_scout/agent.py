@@ -93,6 +93,8 @@ def _write_report(report: TrendReport) -> Path:
     payload = {
         "generated_at": ts,
         "product_count": len(report.products),
+        "printed_count": report.printed_count,
+        "excluded_plain_count": report.excluded_plain_count,
         "price_p25_cents": report.price_p25_cents,
         "price_p50_cents": report.price_p50_cents,
         "price_p75_cents": report.price_p75_cents,
@@ -119,7 +121,8 @@ def _write_report(report: TrendReport) -> Path:
     lines = [
         f"# Trend Scout Report - {ts}",
         "",
-        f"Products analyzed: {len(report.products)}",
+        f"Printed products analyzed: {report.printed_count} "
+        f"(excluded plain: {report.excluded_plain_count})",
         "",
         "## Price bands",
         f"- p25: {_brl(report.price_p25_cents)}",

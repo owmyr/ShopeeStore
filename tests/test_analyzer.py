@@ -3,6 +3,7 @@
 import json
 
 from agents.trend_scout import analyzer
+from agents.trend_scout.prompts import NAO_ESTAMPADA
 from agents.trend_scout.scraper import ScrapedProduct
 
 
@@ -109,12 +110,47 @@ class TestNormalizeThemes:
         assert mapping == {"a": "a", "b": "b", "c": "c", "d": "d"}
 
 
+class TestPrintExclusion:
+    def test_plains_excluded_from_report(self) -> None:
+        products = [
+            _product(1, "Camiseta Basica Lisa 100% Algodao", sold=1000),
+            _product(2, "Camiseta Estampada Anime Manga", sold=100),
+            _product(3, "Kit 3 Camisetas Dry Fit Treino", sold=500),
+        ]
+        client = FakeLLM([json.dumps({"clusters": []})])
+        report = analyzer.analyze(products, client=client)
+
+        assert report.printed_count == 1
+        assert report.excluded_plain_count == 2
+        assert [p.product.item_id for p in report.products] == [2]
+        # price bands computed over printed only
+        assert report.price_p50_cents == 5000
+
+    def test_nao_estampada_theme_excluded_from_counts(self) -> None:
+        products = [
+            _product(1, "Camiseta Estampada X", sold=100),
+            _product(2, "Camiseta Premium Conforto", sold=50),  # no regex hint
+        ]
+        # LLM tags product 2 (index 2 after ranking: sold desc -> [1,2]) as nao-estampada
+        client = FakeLLM([
+            json.dumps({"clusters": [
+                {"theme": "streetwear", "indices": [1], "why": "x"},
+                {"theme": NAO_ESTAMPADA, "indices": [2], "why": "sem estampa"},
+            ]})
+        ])
+        report = analyzer.analyze(products, client=client)
+
+        assert report.theme_counts == [("streetwear", 1)]
+        by_id = {p.product.item_id: p.theme for p in report.products}
+        assert by_id == {1: "streetwear", 2: NAO_ESTAMPADA}
+
+
 class TestAnalyze:
     def test_full_pipeline(self) -> None:
         products = [
             _product(1, "camiseta meme gato", price=3000, sold=500),
             _product(2, "camiseta evangelica leao", price=4000, sold=300),
-            _product(3, "camiseta basica lisa", price=2000, sold=900),
+            _product(3, "camiseta caveira tribal", price=2000, sold=900),
         ]
         # NOTE: titles reach the LLM in RANKED order [item3, item1, item2],
         # so LLM 1-based indices map: 1->item3, 2->item1, 3->item2

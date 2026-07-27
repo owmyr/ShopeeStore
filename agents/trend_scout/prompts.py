@@ -5,13 +5,17 @@ Contract (see .opencode/skills/ptbr-title-clustering/SKILL.md):
 - strict JSON back: {"clusters": [{"theme": str, "indices": [int], "why": str}]}
 """
 
+NAO_ESTAMPADA = "nao-estampada"
+
 CLUSTER_SYSTEM = """Voce agrupa titulos de produtos de e-commerce brasileiro (Shopee) por TEMA.
 
 Regras:
 - Agrupe por tema/estetica da estampa, NAO por atributo do produto (tecido, cor, kit).
 - Temas tipicos: memes, frases engracadas, nostalgia anos 80/90, evangelicas,
-  academia/fitness, pets, profissoes, anime/geek, kpop, festas sazonais,
-  esportes, casal, basica/lisa, streetwear.
+  pets, profissoes, anime/geek, kpop, festas sazonais, esportes, casal, streetwear.
+- IMPORTANTE: se um titulo descrever camiseta LISA/BASICA sem estampa
+  (dry fit, malha fria, gola alta, canelada, kit basico), use o tema
+  "nao-estampada". Nao crie nenhum outro tema para esses titulos.
 - Temas em pt-BR, curtos (2-4 palavras), minusculas.
 - Um titulo pode ficar fora de todos os clusters (ruido) - isso e esperado.
 - Responda SOMENTE com JSON valido no formato:

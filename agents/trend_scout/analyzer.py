@@ -12,8 +12,10 @@ from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
+from agents.trend_scout.filter import is_plain
 from agents.trend_scout.prompts import (
     CLUSTER_SYSTEM,
+    NAO_ESTAMPADA,
     NORMALIZE_SYSTEM,
     cluster_user_prompt,
     normalize_user_prompt,
@@ -34,11 +36,13 @@ class AnalyzedProduct:
 
 @dataclass
 class TrendReport:
-    products: list[AnalyzedProduct] = field(default_factory=list)
+    products: list[AnalyzedProduct] = field(default_factory=list)  # printed only
     price_p25_cents: int = 0
     price_p50_cents: int = 0
     price_p75_cents: int = 0
     theme_counts: list[tuple[str, int]] = field(default_factory=list)  # sorted desc
+    printed_count: int = 0
+    excluded_plain_count: int = 0
 
 
 class _ClusterOut(BaseModel):
@@ -119,15 +123,23 @@ def normalize_themes(themes: list[str], *, client: Any | None = None) -> dict[st
 
 
 def analyze(products: list[ScrapedProduct], *, client: Any | None = None) -> TrendReport:
-    """Full pipeline: dedupe -> rank by sold_count -> price bands -> themes."""
+    """Full pipeline: dedupe -> drop plains -> rank -> price bands -> themes.
+
+    Plain (printless) shirts are excluded from the report entirely - they are
+    useless to a print store. The LLM may further tag stragglers as
+    "nao-estampada"; those stay in `products` (visible) but never in
+    `theme_counts`."""
     unique = dedupe(products)
-    ranked = sorted(unique, key=lambda p: p.sold_count, reverse=True)
+    printed = [p for p in unique if not is_plain(p.title)]
+    ranked = sorted(printed, key=lambda p: p.sold_count, reverse=True)
 
     prices = sorted(p.price_cents for p in ranked)
     report = TrendReport(
         price_p25_cents=percentile(prices, 0.25),
         price_p50_cents=percentile(prices, 0.50),
         price_p75_cents=percentile(prices, 0.75),
+        printed_count=len(printed),
+        excluded_plain_count=len(unique) - len(printed),
     )
 
     titles = [p.title for p in ranked]
@@ -141,7 +153,7 @@ def analyze(products: list[ScrapedProduct], *, client: Any | None = None) -> Tre
         if theme:
             theme = canonical.get(theme, theme)
         analyzed.append(AnalyzedProduct(product=product, theme=theme))
-        if theme:
+        if theme and theme != NAO_ESTAMPADA:
             counts[theme] = counts.get(theme, 0) + 1
 
     report.products = analyzed
