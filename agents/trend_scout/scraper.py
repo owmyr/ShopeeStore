@@ -130,7 +130,10 @@ def parse_card_text(text: str) -> tuple[str, int | None, int | None, float | Non
 def _new_context(pw, *, headless: bool, with_auth: bool) -> tuple[Browser, BrowserContext]:
     """Launch a browser + context with our standard anti-bot fingerprint."""
     settings = get_settings()
-    browser = pw.chromium.launch(headless=headless)
+    browser = pw.chromium.launch(
+        headless=headless,
+        args=["--disable-blink-features=AutomationControlled"],
+    )
     kwargs: dict = {
         "viewport": {"width": 1366, "height": 768},
         "locale": "pt-BR",
@@ -146,6 +149,11 @@ def _is_auth_wall(url: str) -> bool:
     return "/verify/traffic" in url or "/buyer/login" in url
 
 
+def _is_login_flow_url(url: str) -> bool:
+    """URLs seen while auth is still in progress (not yet logged in)."""
+    return _is_auth_wall(url) or "/buyer/signup" in url or "/verify/" in url
+
+
 def _dismiss_cookie_banner(page: Page) -> None:
     try:
         page.get_by_text("Aceitar todos os cookies", exact=False).click(timeout=3000)
@@ -153,7 +161,7 @@ def _dismiss_cookie_banner(page: Page) -> None:
         pass
 
 
-def login(timeout_sec: int = 300) -> Path:
+def login(timeout_sec: int = 600) -> Path:
     """One-time manual login. Opens a headed browser; the user logs in
     (captcha/OTP included); session cookies are persisted to SHOPEE_AUTH_PATH."""
     settings = get_settings()
@@ -169,14 +177,35 @@ def login(timeout_sec: int = 300) -> Path:
                 wait_until="domcontentloaded",
                 timeout=60000,
             )
-            print(">>> Faca login na janela do navegador. Aguardando... <<<")
-            page.wait_for_url(
-                lambda u: u.startswith("https://shopee.com.br")
-                and "login" not in u
-                and "verify" not in u,
-                timeout=timeout_sec * 1000,
+            print(">>> Faca login na janela do navegador. <<<", flush=True)
+            print(
+                ">>> Se concluir o login e nao detectar, navegue para "
+                "https://shopee.com.br em uma aba dessa janela. <<<",
+                flush=True,
             )
-            page.wait_for_timeout(3000)  # let session cookies settle
+            deadline = time.monotonic() + timeout_sec
+            detected: Page | None = None
+            last_report = 0.0
+            while time.monotonic() < deadline:
+                for p in context.pages:
+                    try:
+                        url = p.url
+                    except Exception:  # noqa: BLE001 - tab may be mid-close
+                        continue
+                    if url.startswith("https://shopee.com.br") and not _is_login_flow_url(url):
+                        detected = p
+                        break
+                if detected is not None:
+                    break
+                if time.monotonic() - last_report >= 10:
+                    urls = [p.url for p in context.pages]
+                    print(f"aguardando login... abas abertas: {urls}", flush=True)
+                    last_report = time.monotonic()
+                time.sleep(1)
+            if detected is None:
+                raise TimeoutError(f"login not completed within {timeout_sec}s")
+            print(f"login detectado em: {detected.url}", flush=True)
+            detected.wait_for_timeout(3000)  # let session cookies settle
             context.storage_state(path=str(settings.shopee_auth_path))
         finally:
             browser.close()
