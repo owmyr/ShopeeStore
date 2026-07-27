@@ -61,9 +61,17 @@ class ScrapedProduct:
 # Pure parsing helpers (unit-tested without a browser)
 # ---------------------------------------------------------------------------
 
+_PRICE_RE = re.compile(r"R\$\s*(\d[\d.]*,\d{2})")
+_BARE_PRICE_RE = re.compile(r"(\d[\d.]*,\d{2})")
+_DISCOUNT_RE = re.compile(r"^-?\s*\d+\s*%(\s*OFF)?$", re.IGNORECASE)
+
+
 def parse_price_cents(text: str) -> int | None:
-    """'R$ 1.234,56' -> 123456. pt-BR: dot=thousands, comma=decimal."""
-    m = re.search(r"(\d[\d.]*,\d{2})", text)
+    """'R$ 1.234,56' -> 123456. pt-BR: dot=thousands, comma=decimal.
+
+    Handles Shopee's split layout where 'R$' and the number are on
+    separate lines (\\s matches the newline)."""
+    m = _PRICE_RE.search(text) or _BARE_PRICE_RE.search(text)
     if not m:
         return None
     raw = m.group(1).replace(".", "").replace(",", ".")
@@ -100,25 +108,32 @@ def parse_item_href(href: str) -> tuple[int, int] | None:
     return int(m.group(1)), int(m.group(2))
 
 
+def _is_title_line(line: str) -> bool:
+    if "R$" in line or _DISCOUNT_RE.match(line):
+        return False
+    if _BARE_PRICE_RE.fullmatch(line):
+        return False
+    if parse_sold_count(line) is not None:
+        return False
+    return parse_rating(line) is None
+
+
 def parse_card_text(text: str) -> tuple[str, int | None, int | None, float | None]:
-    """Split an anchor's innerText block into (title, price_cents, sold, rating)."""
+    """Split an anchor's innerText block into (title, price_cents, sold, rating).
+
+    Real Shopee card layout (verified 2026-07): discount badge, title,
+    'R$' alone on a line, price on the next line, then 'NNN vendidos'."""
+    price_cents = parse_price_cents(text)
+    sold = parse_sold_count(text)
     title = ""
-    price_cents: int | None = None
-    sold: int | None = None
     rating: float | None = None
     for line in (ln.strip() for ln in text.splitlines() if ln.strip()):
-        if price_cents is None and "R$" in line:
-            price_cents = parse_price_cents(line)
-            continue
-        if sold is None and "vendido" in line.lower():
-            sold = parse_sold_count(line)
-            continue
         if rating is None:
             candidate = parse_rating(line)
             if candidate is not None:
                 rating = candidate
                 continue
-        if not title and "R$" not in line:
+        if not title and _is_title_line(line):
             title = line
     return title, price_cents, sold, rating
 
@@ -272,7 +287,7 @@ def scrape_best_sellers(
             page = context.new_page()
             try:
                 page.goto(url, wait_until="domcontentloaded", timeout=60000)
-                page.wait_for_timeout(4000)  # initial render + anti-bot settle
+                page.wait_for_timeout(6000)  # initial render + anti-bot settle
                 _dismiss_cookie_banner(page)
                 if _is_auth_wall(page.url):
                     raise ShopeeAuthError(

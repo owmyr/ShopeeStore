@@ -95,3 +95,24 @@ class TestParseCardText:
         assert price == 2500
         assert sold is None
         assert rating is None
+
+    def test_real_shopee_layout_split_price_and_discount(self) -> None:
+        """Layout observed live 2026-07: discount badge, title, 'R$' alone,
+        price on the next line, sold count last."""
+        text = (
+            "-33%\n"
+            "Camiseta Streetwear Tshirt 100% Algodao Ctrz Dead Preezy\n"
+            "R$\n"
+            "33,44\n"
+            "160 vendidos"
+        )
+        title, price, sold, rating = scraper.parse_card_text(text)
+        assert title == "Camiseta Streetwear Tshirt 100% Algodao Ctrz Dead Preezy"
+        assert price == 3344
+        assert sold == 160
+        assert rating is None
+
+    def test_discount_badge_never_becomes_title(self) -> None:
+        text = "-48%\nCamiseta Basica\nR$\n25,00"
+        title, _, _, _ = scraper.parse_card_text(text)
+        assert title == "Camiseta Basica"
