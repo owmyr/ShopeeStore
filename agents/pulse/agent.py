@@ -19,6 +19,7 @@ from sqlmodel import select
 
 from agents.trend_scout import scraper
 from agents.trend_scout.agent import _persist
+from agents.trend_scout.filter import is_plain
 from core import db, ledger
 from core.config import get_settings
 from core.models import PriceSnapshot, Product
@@ -69,7 +70,9 @@ def run_once(max_products: int = 20) -> Path:
                     if snap is not None:
                         previous[p.item_id] = snap
 
-        spikes = detect_spikes(products, previous)
+        # spikes only for printed shirts; raw snapshots persist everything (audit)
+        printed = [p for p in products if not is_plain(p.title)]
+        spikes = detect_spikes(printed, previous)
         _persist(products, handle.run_id)
 
         ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")

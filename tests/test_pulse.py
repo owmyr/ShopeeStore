@@ -56,6 +56,17 @@ def _patch_scrape(monkeypatch, products: list[ScrapedProduct]) -> None:
     )
 
 
+def test_plain_products_never_spike(isolated, monkeypatch) -> None:
+    _patch_scrape(monkeypatch, [
+        _p(1, "Camiseta Basica Lisa Algodao", 5000),
+        _p(2, "Camiseta Estampada Anime", 100),
+    ])
+    out = pulse.run_once()
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert len(payload["spikes"]) == 1
+    assert payload["spikes"][0]["item_id"] == 2
+
+
 def test_first_run_marks_everything_new(isolated, monkeypatch) -> None:
     _patch_scrape(monkeypatch, [_p(1, "a", 100), _p(2, "b", 200)])
     out = pulse.run_once(max_products=20)
