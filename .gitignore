@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+# Env / secrets
+.env
+.streamlit/secrets.toml
+
+# Data & artifacts
+data/*
+!data/.gitkeep
+
+# Playwright / test artifacts
+test-results/
+
+# OS
+Thumbs.db
+.DS_Store

@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shopee-store"
+version = "0.1.0"
+description = "Shopee BR camisetas trend intelligence - scraping, trend analysis, agent supervision"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "playwright>=1.40",
+    "sqlmodel>=0.0.14",
+    "apscheduler>=3.10,<4",
+    "ollama>=0.3",
+    "streamlit>=1.30",
+    "pandas>=2.0",
+    "plotly>=5.18",
+    "matplotlib>=3.8",
+    "pydantic>=2.5",
+    "pydantic-settings>=2.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "ruff>=0.1",
+]
+
+[tool.setuptools]
+packages = ["core", "agents", "agents.trend_scout", "dashboard"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
