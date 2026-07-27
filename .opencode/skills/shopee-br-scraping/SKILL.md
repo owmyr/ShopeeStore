@@ -18,6 +18,11 @@ description: Shopee Brazil (shopee.com.br) Playwright scraping patterns - catego
   `/buyer/login` -> screenshot + raise `ShopeeAuthError` (tell user to
   re-run --login). Never silently scrape zero products.
 
+## Search keyword (phase 3)
+- Default keyword is `camiseta estampada` (config `SCRAPE_KEYWORD`) - biases
+  results toward PRINTED shirts at the source, which is what we sell.
+- URL: `https://shopee.com.br/search?keyword=<quoted>&sortBy=sales`.
+
 ## Category URL
 - Format: `https://shopee.com.br/{slug}-cat.{shopid}.{categoryid}`
 - Category IDs are NOT stable across documentation; resolve the exact

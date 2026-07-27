@@ -62,13 +62,21 @@ only while you are logged on; `StartWhenAvailable` catches up missed runs.
 
 ## How it works
 
-1. **Scrape** (`agents/trend_scout/scraper.py`) — Playwright, search "camiseta"
-   sorted by sales, infinite scroll, polite jittered delays, screenshot-on-error.
-2. **Analyze** (`agents/trend_scout/analyzer.py`) — dedupe, rank by sold count,
-   price-band percentiles, theme clustering via local Ollama (max 25 titles/call).
-3. **Report** (`agents/trend_scout/agent.py`) — SQLite snapshots +
-   `data/reports/<ts>/{report.md,report.json,prices.png,themes.png}`.
-4. **Supervise** (`dashboard/app.py`) — every run is logged to the agent ledger
+1. **Scrape** (`agents/trend_scout/scraper.py`) — Playwright, search
+   `camiseta estampada` sorted by sales, `?page=N` pagination, polite delays,
+   screenshot-on-error.
+2. **Print filter** (`agents/trend_scout/filter.py`) — plain/lisa/basica/dry-fit
+   titles are excluded from trends (kept in DB for audit). We sell prints;
+   plains are noise.
+3. **Analyze** (`agents/trend_scout/analyzer.py`) — printed only: dedupe, rank
+   by sold count, price bands, theme clustering via local Ollama (max 25
+   titles/call), theme normalization.
+4. **Report** (`agents/trend_scout/agent.py`) — SQLite snapshots +
+   `data/reports/<ts>/{report.md,report.json,prices.png,themes.png}` with
+   `printed_count` / `excluded_plain_count`.
+5. **Reference images** (`agents/image_harvester/agent.py`) — top printed
+   products' images into `data/reference/<theme>/`, feeding the design agent.
+6. **Supervise** (`dashboard/app.py`) — every run is logged to the agent ledger
    (`agent_ledger` table + `data/ledger.jsonl`).
 
 ## Tests & lint

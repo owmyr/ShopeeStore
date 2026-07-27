@@ -7,13 +7,21 @@ Agents: Trend Scout (MVP). Design brief, supplier comms, listing agents deferred
 
 ## Layout
 - `core/` - config, db, models, ledger, llm, scheduler (shared infrastructure)
-- `agents/trend_scout/` - scraper, analyzer, agent orchestration, prompts
-- `agents/image_harvester/` - downloads + theme-tags top product images
-- `agents/pulse/` - daily top-20 scrape + spike detection (no LLM)
+- `agents/trend_scout/` - scraper, analyzer, agent orchestration, prompts, filter (print detection)
+- `agents/image_harvester/` - downloads printed-shirt images into `data/reference/<theme>/`
+- `agents/pulse/` - daily top-20 scrape + spike detection (no LLM, printed only)
 - `dashboard/` - Streamlit supervision UI
 - `scripts/` - Windows Task Scheduler install/uninstall
 - `tests/` - pytest
-- `data/` - gitignored: sqlite db, reports, ledger jsonl, images, error screenshots
+- `data/` - gitignored: sqlite db, reports, ledger jsonl, reference images, error screenshots
+
+## Print filter (phase 3 - core business rule)
+- We sell PRINTED shirts. Plain/lisa/basica/dry-fit shirts are useless.
+- `agents/trend_scout/filter.py` `is_plain(title)`: PLAIN regex marks printless;
+  PRINT hints (estampada, bordada, anime, kpop, caveira, ...) always win.
+- Plains stay in DB (audit) but are excluded from TrendReport, report.json,
+  `data/reference/`, and pulse spikes. LLM may tag stragglers `nao-estampada`.
+- Scrape keyword default is `camiseta estampada` (config `SCRAPE_KEYWORD`).
 
 ## Conventions
 - Python 3.11+, `ruff check .` and `pytest` must pass before every commit.

@@ -26,9 +26,11 @@ description: PT-BR e-commerce title clustering prompt patterns for small local O
 - Titles are Brazilian e-commerce keyword spam: "camiseta oversized
   streetwear", "kit 3 unidades", "algodao fio 30.1", "frete gratis".
 - Cluster by THEME, not by product attributes: memes, frases engracadas,
-  nostalgia anos 80/90, evangelicas, academia/fitness, pets, profissao,
+  nostalgia anos 80/90, evangelicas, pets, profissao,
   anime/geek, festas (Sao Joao, Carnaval), esportes, casal.
 - Themes must be in pt-BR, short (2-4 words), lowercase slug style.
+- PLAIN SHIRTS (lisa/basica/dry fit/malha fria/gola alta/canelada) get the
+  reserved theme `nao-estampada` - never a real theme. We sell prints.
 
 ## Failure discipline
 - On invalid JSON: retry ONCE with a stricter prompt ("Responda SOMENTE com
