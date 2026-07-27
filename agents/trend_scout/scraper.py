@@ -127,13 +127,18 @@ def parse_card_text(text: str) -> tuple[str, int | None, int | None, float | Non
 # Auth (one-time manual login, persisted session)
 # ---------------------------------------------------------------------------
 
-def _new_context(pw, *, headless: bool, with_auth: bool) -> tuple[Browser, BrowserContext]:
+def _new_context(
+    pw, *, headless: bool, with_auth: bool, real_chrome: bool = False
+) -> tuple[Browser, BrowserContext]:
     """Launch a browser + context with our standard anti-bot fingerprint."""
     settings = get_settings()
-    browser = pw.chromium.launch(
-        headless=headless,
-        args=["--disable-blink-features=AutomationControlled"],
-    )
+    launch_kwargs: dict = {
+        "headless": headless,
+        "args": ["--disable-blink-features=AutomationControlled"],
+    }
+    if real_chrome:
+        launch_kwargs["channel"] = "chrome"  # use installed Google Chrome, not bundled Chromium
+    browser = pw.chromium.launch(**launch_kwargs)
     kwargs: dict = {
         "viewport": {"width": 1366, "height": 768},
         "locale": "pt-BR",
@@ -167,7 +172,7 @@ def login(timeout_sec: int = 600) -> Path:
     settings = get_settings()
     settings.shopee_auth_path.parent.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as pw:
-        browser, context = _new_context(pw, headless=False, with_auth=False)
+        browser, context = _new_context(pw, headless=False, with_auth=False, real_chrome=True)
         try:
             page = context.new_page()
             page.goto("https://shopee.com.br/", wait_until="domcontentloaded", timeout=60000)
@@ -201,6 +206,10 @@ def login(timeout_sec: int = 600) -> Path:
                     urls = [p.url for p in context.pages]
                     print(f"aguardando login... abas abertas: {urls}", flush=True)
                     last_report = time.monotonic()
+                    try:
+                        context.pages[0].screenshot(path=str(settings.data_dir / "login_wait.png"))
+                    except Exception:  # noqa: BLE001 - debug artifact only
+                        pass
                 time.sleep(1)
             if detected is None:
                 raise TimeoutError(f"login not completed within {timeout_sec}s")
