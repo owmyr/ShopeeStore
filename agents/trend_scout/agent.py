@@ -9,6 +9,7 @@ Usage: python -m agents.trend_scout.agent [--dry-run] [--max N]
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -88,6 +89,31 @@ def _write_report(report: TrendReport) -> Path:
     ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     out_dir = get_settings().data_dir / "reports" / ts
     out_dir.mkdir(parents=True, exist_ok=True)
+
+    payload = {
+        "generated_at": ts,
+        "product_count": len(report.products),
+        "price_p25_cents": report.price_p25_cents,
+        "price_p50_cents": report.price_p50_cents,
+        "price_p75_cents": report.price_p75_cents,
+        "theme_counts": report.theme_counts,
+        "products": [
+            {
+                "item_id": ap.product.item_id,
+                "shop_id": ap.product.shop_id,
+                "title": ap.product.title,
+                "url": ap.product.url,
+                "price_cents": ap.product.price_cents,
+                "sold_count": ap.product.sold_count,
+                "rating": ap.product.rating,
+                "theme": ap.theme,
+            }
+            for ap in report.products
+        ],
+    }
+    (out_dir / "report.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
     lines = [
         f"# Trend Scout Report - {ts}",

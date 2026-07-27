@@ -54,6 +54,9 @@ def test_run_once_persists_and_reports(isolated, tmp_path, monkeypatch) -> None:
 
     assert out_dir is not None and (out_dir / "report.md").exists()
     assert (out_dir / "prices.png").exists()
+    payload = json.loads((out_dir / "report.json").read_text(encoding="utf-8"))
+    assert payload["product_count"] == 2
+    assert payload["products"][0]["sold_count"] == 900  # ranked desc
     assert len(calls) == 1
 
     with db.session_scope() as s:
