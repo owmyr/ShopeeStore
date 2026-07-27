@@ -1,8 +1,10 @@
 """Image Harvester orchestration.
 
 Reads the latest Trend Scout report (themes + ranking), pulls image URLs
-from the DB, downloads the top-N product images to data/images/, and records
-them in the product_image table. Ledger-logged like every agent.
+from the DB, downloads the top-N PRINTED product images into theme-segregated
+folders (data/reference/<theme-slug>/<item_id>.jpg), and records them in the
+product_image table. Plain shirts and "nao-estampada" items are skipped -
+the reference folder feeds the design agent and must contain prints only.
 
 Usage: python -m agents.image_harvester.agent [--max N] [--force]
 """
@@ -18,6 +20,8 @@ from pathlib import Path
 from sqlmodel import Session, select
 
 from agents.image_harvester.downloader import download_image
+from agents.trend_scout.filter import is_plain, theme_slug
+from agents.trend_scout.prompts import NAO_ESTAMPADA
 from core import db, ledger
 from core.config import get_settings
 from core.models import Product, ProductImage
@@ -84,10 +88,15 @@ def run_once(
             return Path(last.outputs_path) if last.outputs_path else None
 
     with ledger.run(AGENT_NAME, inputs) as handle:
-        images_dir = settings.data_dir / "images"
-        items = sorted(
+        reference_dir = settings.data_dir / "reference"
+        candidates = sorted(
             payload.get("products", []), key=lambda p: p.get("sold_count", 0), reverse=True
-        )[:max_images]
+        )
+        items = [
+            it
+            for it in candidates
+            if not is_plain(it.get("title", "")) and it.get("theme") != NAO_ESTAMPADA
+        ][:max_images]
 
         downloaded = 0
         with db.session_scope() as s:
@@ -95,15 +104,16 @@ def run_once(
                 url = item.get("image_url") or _image_url_from_db(s, item["item_id"])
                 if not url:
                     continue
-                dest = images_dir / f"{item['item_id']}.jpg"
+                slug = theme_slug(item.get("theme") or "")
+                dest = reference_dir / slug / f"{item['item_id']}.jpg"
                 if download_image(url, dest):
                     downloaded += 1
                     _record_image(s, item, dest, handle.run_id)
             s.commit()
 
-        log.info("harvested %d/%d images -> %s", downloaded, len(items), images_dir)
-        handle.set_outputs(str(images_dir))
-    return images_dir
+        log.info("harvested %d/%d images -> %s", downloaded, len(items), reference_dir)
+        handle.set_outputs(str(reference_dir))
+    return reference_dir
 
 
 def main() -> int:
