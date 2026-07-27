@@ -12,7 +12,12 @@ from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
-from agents.trend_scout.prompts import CLUSTER_SYSTEM, cluster_user_prompt
+from agents.trend_scout.prompts import (
+    CLUSTER_SYSTEM,
+    NORMALIZE_SYSTEM,
+    cluster_user_prompt,
+    normalize_user_prompt,
+)
 from agents.trend_scout.scraper import ScrapedProduct
 from core import llm
 
@@ -44,6 +49,15 @@ class _ClusterOut(BaseModel):
 
 class _BatchOut(BaseModel):
     clusters: list[_ClusterOut]
+
+
+class _MapEntry(BaseModel):
+    original: str
+    canonical: str
+
+
+class _NormalizeOut(BaseModel):
+    mapping: list[_MapEntry]
 
 
 def percentile(sorted_vals: list[int], p: float) -> int:
@@ -84,6 +98,26 @@ def cluster_titles(titles: list[str], *, client: Any | None = None) -> dict[int,
     return mapping
 
 
+def normalize_themes(themes: list[str], *, client: Any | None = None) -> dict[str, str]:
+    """Map each theme to a canonical label (one LLM call). Batches invent
+    their own labels for the same concept; this merges synonyms. Falls back
+    to identity mapping on any LLM failure."""
+    unique = sorted(set(themes))
+    if len(unique) <= 3:
+        return {t: t for t in unique}
+    try:
+        raw = llm.chat_json(NORMALIZE_SYSTEM, normalize_user_prompt(unique), client=client)
+        parsed = _NormalizeOut.model_validate(raw)
+    except (llm.LLMOutputError, ValidationError) as exc:
+        log.warning("theme normalization failed, keeping originals: %s", exc)
+        return {t: t for t in unique}
+    mapping = {t: t for t in unique}
+    for entry in parsed.mapping:
+        if entry.original in mapping and entry.canonical:
+            mapping[entry.original] = entry.canonical
+    return mapping
+
+
 def analyze(products: list[ScrapedProduct], *, client: Any | None = None) -> TrendReport:
     """Full pipeline: dedupe -> rank by sold_count -> price bands -> themes."""
     unique = dedupe(products)
@@ -98,11 +132,14 @@ def analyze(products: list[ScrapedProduct], *, client: Any | None = None) -> Tre
 
     titles = [p.title for p in ranked]
     themes = cluster_titles(titles, client=client) if titles else {}
+    canonical = normalize_themes(list(themes.values()), client=client) if themes else {}
 
     counts: dict[str, int] = {}
     analyzed: list[AnalyzedProduct] = []
     for idx, product in enumerate(ranked):
         theme = themes.get(idx)
+        if theme:
+            theme = canonical.get(theme, theme)
         analyzed.append(AnalyzedProduct(product=product, theme=theme))
         if theme:
             counts[theme] = counts.get(theme, 0) + 1

@@ -82,6 +82,33 @@ class TestClusterTitles:
         assert mapping == {}
 
 
+class TestNormalizeThemes:
+    def test_merges_synonyms(self) -> None:
+        client = FakeLLM([
+            json.dumps({"mapping": [
+                {"original": "academia", "canonical": "academia/fitness"},
+                {"original": "academia/fitness", "canonical": "academia/fitness"},
+                {"original": "basica", "canonical": "basica/lisa"},
+                {"original": "basica/lisa", "canonical": "basica/lisa"},
+            ]})
+        ])
+        mapping = analyzer.normalize_themes(
+            ["basica", "basica/lisa", "academia", "academia/fitness"], client=client
+        )
+        assert mapping["basica"] == "basica/lisa"
+        assert mapping["academia"] == "academia/fitness"
+        assert mapping["basica/lisa"] == "basica/lisa"
+
+    def test_identity_for_small_lists(self) -> None:
+        mapping = analyzer.normalize_themes(["a", "b"], client=None)
+        assert mapping == {"a": "a", "b": "b"}
+
+    def test_fallback_on_garbage(self) -> None:
+        client = FakeLLM(["lixo", "lixo denovo"])
+        mapping = analyzer.normalize_themes(["a", "b", "c", "d"], client=client)
+        assert mapping == {"a": "a", "b": "b", "c": "c", "d": "d"}
+
+
 class TestAnalyze:
     def test_full_pipeline(self) -> None:
         products = [
