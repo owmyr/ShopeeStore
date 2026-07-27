@@ -8,6 +8,9 @@ Patterns documented in .opencode/skills/shopee-br-scraping/SKILL.md:
 - `--dry-run` caps at 5 products for development.
 
 Dev usage: python -m agents.trend_scout.scraper --dry-run
+
+Search keyword comes from config (SCRAPE_KEYWORD, default "camiseta estampada")
+so results are biased toward printed shirts at the source.
 """
 
 from __future__ import annotations
@@ -20,6 +23,7 @@ import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import quote
 
 from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
 
@@ -28,7 +32,11 @@ from core.config import get_settings
 log = logging.getLogger(__name__)
 
 ITEM_HREF_RE = re.compile(r"-i\.(\d+)\.(\d+)")
-DEFAULT_SEARCH_URL = "https://shopee.com.br/search?keyword=camiseta&sortBy=sales"
+
+
+def search_url(keyword: str) -> str:
+    """Shopee BR search URL sorted by sales for a keyword."""
+    return f"https://shopee.com.br/search?keyword={quote(keyword)}&sortBy=sales"
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
@@ -296,7 +304,7 @@ def scrape_best_sellers(
             "run `python -m agents.trend_scout.scraper --login` first"
         )
     target = 5 if dry_run else (max_products or settings.scrape_max_products)
-    url = category_url or settings.scrape_category_url or DEFAULT_SEARCH_URL
+    url = category_url or settings.scrape_category_url or search_url(settings.scrape_keyword)
     shots = screenshot_dir or settings.data_dir
 
     with sync_playwright() as pw:

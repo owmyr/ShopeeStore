@@ -21,6 +21,7 @@ class Settings(BaseSettings):
 
     # Scraper
     scrape_max_products: int = 500
+    scrape_keyword: str = "camiseta estampada"
     scrape_category_url: str = ""
     scrape_delay_min_sec: float = 3.0
     scrape_delay_max_sec: float = 6.0

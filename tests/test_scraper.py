@@ -64,6 +64,19 @@ class TestParseRating:
         assert scraper.parse_rating("6,5") is None
 
 
+class TestSearchUrl:
+    def test_quotes_keyword(self) -> None:
+        url = scraper.search_url("camiseta estampada")
+        assert url == (
+            "https://shopee.com.br/search?keyword=camiseta%20estampada&sortBy=sales"
+        )
+
+    def test_single_word(self) -> None:
+        assert scraper.search_url("camiseta") == (
+            "https://shopee.com.br/search?keyword=camiseta&sortBy=sales"
+        )
+
+
 class TestPageUrl:
     def test_appends_param(self) -> None:
         assert scraper.page_url("https://x/search?keyword=camiseta", 2) == (
