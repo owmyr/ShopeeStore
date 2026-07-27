@@ -22,6 +22,7 @@ def main() -> int:
     sub.add_parser("login", help="one-time Shopee login (opens browser)")
     harvest = sub.add_parser("harvest", help="download top product images")
     harvest.add_argument("--max", type=int, default=50, help="max images (default 50)")
+    sub.add_parser("pulse", help="daily spike radar (top 20 scrape + diff)")
     args = parser.parse_args()
 
     if args.command in ("run", "run-now"):
@@ -60,6 +61,16 @@ def main() -> int:
 
         out = harvest_once(max_images=args.max)
         print(f"images: {out}")
+        return 0
+
+    if args.command == "pulse":
+        import logging
+
+        logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+        from agents.pulse.agent import run_once as pulse_once
+
+        out = pulse_once()
+        print(f"pulse: {out}")
         return 0
 
     return 1

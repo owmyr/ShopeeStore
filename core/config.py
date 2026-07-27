@@ -26,9 +26,10 @@ class Settings(BaseSettings):
     scrape_delay_max_sec: float = 6.0
     scrape_headless: bool = True
 
-    # Scheduler (weekly)
+    # Scheduler (weekly deep run + daily pulse)
     schedule_cron_weekday: str = "mon"
     schedule_cron_hour: int = 9
+    schedule_pulse_hour: int = 8
 
     # Storage
     db_path: Path = PROJECT_ROOT / "data" / "shopee.db"

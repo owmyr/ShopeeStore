@@ -29,7 +29,14 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["core", "agents", "agents.trend_scout", "agents.image_harvester", "dashboard"]
+packages = [
+    "core",
+    "agents",
+    "agents.trend_scout",
+    "agents.image_harvester",
+    "agents.pulse",
+    "dashboard",
+]
 
 [tool.ruff]
 target-version = "py311"

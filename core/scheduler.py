@@ -15,6 +15,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from agents.image_harvester import agent as image_harvester
+from agents.pulse import agent as pulse
 from agents.trend_scout import agent as trend_scout
 from core.config import get_settings
 
@@ -55,6 +56,14 @@ def _job() -> None:
         log.exception("scheduled image harvest failed")
 
 
+def _pulse_job() -> None:
+    log.info("scheduled pulse run starting")
+    try:
+        pulse.run_once()
+    except Exception:
+        log.exception("scheduled pulse run failed")
+
+
 def self_heal(max_age_days: int = SELF_HEAL_MAX_AGE_DAYS) -> bool:
     """Run immediately if the last scheduled run is stale. Returns True if triggered."""
     last = last_scheduled_run()
@@ -78,6 +87,13 @@ def build_scheduler() -> BlockingScheduler:
         ),
         id="trend_scout_weekly",
         name="Trend Scout weekly scrape",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        _pulse_job,
+        CronTrigger(hour=settings.schedule_pulse_hour, minute=30),
+        id="pulse_daily",
+        name="Pulse daily spike radar",
         replace_existing=True,
     )
     return scheduler
