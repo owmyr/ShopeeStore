@@ -39,13 +39,26 @@ A Chrome window opens. Log in; the script detects it and saves the session to
 ## Usage
 
 ```powershell
-python __main__.py dashboard   # supervision UI (ledger, trends, run-now button)
+python __main__.py dashboard   # supervision UI (ledger, trends, gallery, run-now)
 python __main__.py run         # run Trend Scout once (skips if run <24h ago)
 python __main__.py run-now     # force a run now
-python __main__.py schedule    # weekly scheduler (Mon 09:00 BRT) + boot self-heal
+python __main__.py harvest     # download top product images (data/images/)
+python __main__.py pulse       # daily spike radar (top 20 + new/jump detection)
+python __main__.py schedule    # in-app scheduler (dev; see below for unattended)
 ```
 
 Dev scraper (no DB/LLM): `python -m agents.trend_scout.scraper --dry-run`
+
+## Unattended runs (Windows Task Scheduler)
+
+```powershell
+powershell -File scripts\install_tasks.ps1    # register (idempotent)
+powershell -File scripts\uninstall_tasks.ps1  # remove
+```
+
+Registers `ShopeeStore-WeeklyRun` (Mon 09:00: deep scrape + report + image
+harvest) and `ShopeeStore-DailyPulse` (daily 08:30: spike radar). Tasks run
+only while you are logged on; `StartWhenAvailable` catches up missed runs.
 
 ## How it works
 

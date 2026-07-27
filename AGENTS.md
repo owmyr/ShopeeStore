@@ -8,9 +8,12 @@ Agents: Trend Scout (MVP). Design brief, supplier comms, listing agents deferred
 ## Layout
 - `core/` - config, db, models, ledger, llm, scheduler (shared infrastructure)
 - `agents/trend_scout/` - scraper, analyzer, agent orchestration, prompts
+- `agents/image_harvester/` - downloads + theme-tags top product images
+- `agents/pulse/` - daily top-20 scrape + spike detection (no LLM)
 - `dashboard/` - Streamlit supervision UI
+- `scripts/` - Windows Task Scheduler install/uninstall
 - `tests/` - pytest
-- `data/` - gitignored: sqlite db, reports, ledger jsonl, error screenshots
+- `data/` - gitignored: sqlite db, reports, ledger jsonl, images, error screenshots
 
 ## Conventions
 - Python 3.11+, `ruff check .` and `pytest` must pass before every commit.
