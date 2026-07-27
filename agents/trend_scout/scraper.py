@@ -263,6 +263,17 @@ def _extract_products(page: Page, seen: dict[int, ScrapedProduct]) -> None:
         )
 
 
+def page_url(url: str, page_num: int) -> str:
+    """Add/replace the `page=N` query param (Shopee search pagination)."""
+    if "page=" in url:
+        return re.sub(r"page=\d+", f"page={page_num}", url)
+    sep = "&" if "?" in url else "?"
+    return f"{url}{sep}page={page_num}"
+
+
+MAX_PAGES = 20  # safety cap (~60 products/page -> 1200)
+
+
 def scrape_best_sellers(
     max_products: int | None = None,
     *,
@@ -270,7 +281,11 @@ def scrape_best_sellers(
     category_url: str | None = None,
     screenshot_dir: Path | None = None,
 ) -> list[ScrapedProduct]:
-    """Scrape Shopee BR camisetas sorted by sales. Returns up to `target` products."""
+    """Scrape Shopee BR camisetas sorted by sales. Returns up to `target` products.
+
+    Pagination (verified 2026-07): infinite scroll caps out early, results
+    continue via `?page=N` URLs. Strategy: scroll each page until stagnant,
+    then advance to the next page."""
     settings = get_settings()
     if not settings.shopee_auth_path.exists():
         raise ShopeeAuthError(
@@ -286,36 +301,44 @@ def scrape_best_sellers(
         try:
             page = context.new_page()
             try:
-                page.goto(url, wait_until="domcontentloaded", timeout=60000)
-                page.wait_for_timeout(6000)  # initial render + anti-bot settle
-                _dismiss_cookie_banner(page)
-                if _is_auth_wall(page.url):
-                    raise ShopeeAuthError(
-                        f"session expired or rejected (landed on {page.url}) - "
-                        "re-run `python -m agents.trend_scout.scraper --login`"
-                    )
-
                 seen: dict[int, ScrapedProduct] = {}
-                stagnant_rounds = 0
-                while len(seen) < target and stagnant_rounds < 5:
-                    _extract_products(page, seen)
-                    if len(seen) >= target:
-                        break
-                    prev = len(seen)
-                    page.mouse.wheel(0, random.randint(2000, 3000))
-                    page.wait_for_timeout(random.randint(1200, 2200))
-                    stagnant_rounds = stagnant_rounds + 1 if len(seen) == prev else 0
+                stagnant_pages = 0
+                page_num = 0
+                new_since_pause = 0
 
-                    count = len(seen)
-                    if count and count % 25 < 5:
-                        time.sleep(random.uniform(8, 12))  # politeness pause
-                    else:
-                        time.sleep(
-                            random.uniform(
-                                settings.scrape_delay_min_sec,
-                                settings.scrape_delay_max_sec,
+                while len(seen) < target and stagnant_pages < 2 and page_num < MAX_PAGES:
+                    page.goto(page_url(url, page_num), wait_until="domcontentloaded", timeout=60000)
+                    page.wait_for_timeout(random.randint(3000, 5000))
+                    if page_num == 0:
+                        _dismiss_cookie_banner(page)
+                        if _is_auth_wall(page.url):
+                            raise ShopeeAuthError(
+                                f"session expired or rejected (landed on {page.url}) - "
+                                "re-run `python -m agents.trend_scout.scraper --login`"
                             )
-                        )
+
+                    before = len(seen)
+                    stagnant_scrolls = 0
+                    while len(seen) < target and stagnant_scrolls < 3:
+                        _extract_products(page, seen)
+                        prev = len(seen)
+                        page.mouse.wheel(0, random.randint(2000, 3000))
+                        page.wait_for_timeout(random.randint(1200, 2200))
+                        stagnant_scrolls = stagnant_scrolls + 1 if len(seen) == prev else 0
+
+                        new_since_pause += max(0, len(seen) - prev)
+                        if new_since_pause >= 25:
+                            time.sleep(random.uniform(8, 12))  # politeness pause
+                            new_since_pause = 0
+                        else:
+                            time.sleep(
+                                random.uniform(
+                                    settings.scrape_delay_min_sec,
+                                    settings.scrape_delay_max_sec,
+                                )
+                            )
+                    stagnant_pages = stagnant_pages + 1 if len(seen) == before else 0
+                    page_num += 1
                 return list(seen.values())[:target]
             except Exception:
                 shots.mkdir(parents=True, exist_ok=True)

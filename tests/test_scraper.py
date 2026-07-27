@@ -64,6 +64,23 @@ class TestParseRating:
         assert scraper.parse_rating("6,5") is None
 
 
+class TestPageUrl:
+    def test_appends_param(self) -> None:
+        assert scraper.page_url("https://x/search?keyword=camiseta", 2) == (
+            "https://x/search?keyword=camiseta&page=2"
+        )
+
+    def test_replaces_existing(self) -> None:
+        assert scraper.page_url("https://x/search?keyword=camiseta&page=0", 3) == (
+            "https://x/search?keyword=camiseta&page=3"
+        )
+
+    def test_no_query_string(self) -> None:
+        assert scraper.page_url("https://x/Camisetas-cat.1.2", 1) == (
+            "https://x/Camisetas-cat.1.2?page=1"
+        )
+
+
 class TestParseItemHref:
     def test_standard(self) -> None:
         url = "https://shopee.com.br/Camiseta-Oversized-i.123456789.987654321?xpt=1"

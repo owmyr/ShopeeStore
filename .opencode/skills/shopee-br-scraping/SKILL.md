@@ -25,11 +25,12 @@ description: Shopee Brazil (shopee.com.br) Playwright scraping patterns - catego
   `.env` as `SCRAPE_CATEGORY_URL`. Never hardcode a guessed ID.
 - Sort by best sellers: append `?sortBy=sales`.
 
-## Pagination
-- Infinite scroll: no "next page" link. Drive it with
-  `page.mouse.wheel(0, ~2500)` + `page.wait_for_timeout(1500)` in a loop until
-  the product count stops growing or `SCRAPE_MAX_PRODUCTS` is reached.
-- ~60 items load per scroll batch.
+## Pagination (updated 2026-07 after live run)
+- Infinite scroll CAPS OUT early (only ~38 products extractable by scrolling).
+- Results continue via explicit `?page=N` query param (0-indexed); the
+  pagination links appear in the DOM (`/search?...&page=1`).
+- Strategy: scroll each page until stagnant (~3 rounds), then
+  `goto(page_url(base, N))`. ~60 products per page. Cap at MAX_PAGES=20.
 
 ## Extraction
 - Product anchors match the pattern `/{name}-i.{shopid}.{itemid}` - extract
