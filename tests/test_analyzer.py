@@ -1,5 +1,109 @@
-"""Analyzer tests. Real tests land with step 5."""
+"""Analyzer tests (fake LLM client - no Ollama needed)."""
+
+import json
+
+from agents.trend_scout import analyzer
+from agents.trend_scout.scraper import ScrapedProduct
 
 
-def test_placeholder() -> None:
-    assert True
+def _product(item_id: int, title: str, price: int = 5000, sold: int = 100) -> ScrapedProduct:
+    return ScrapedProduct(
+        item_id=item_id,
+        shop_id=1,
+        title=title,
+        url=f"https://x/i.1.{item_id}",
+        price_cents=price,
+        sold_count=sold,
+        rating=None,
+    )
+
+
+class FakeLLM:
+    """Returns canned cluster JSON per call; records user prompts."""
+
+    def __init__(self, responses: list) -> None:
+        self.responses = list(responses)
+        self.user_prompts: list[str] = []
+
+    def chat(self, model, messages, **kwargs):
+        self.user_prompts.append(messages[1]["content"])
+        return {"message": {"content": self.responses.pop(0)}}
+
+
+class TestPercentile:
+    def test_median_odd(self) -> None:
+        assert analyzer.percentile([10, 20, 30], 0.5) == 20
+
+    def test_interpolates(self) -> None:
+        assert analyzer.percentile([10, 20], 0.5) == 15
+
+    def test_empty(self) -> None:
+        assert analyzer.percentile([], 0.5) == 0
+
+    def test_p25(self) -> None:
+        assert analyzer.percentile([100, 200, 300, 400], 0.25) == 175
+
+
+class TestDedupe:
+    def test_first_occurrence_wins(self) -> None:
+        a = _product(1, "camiseta A", sold=50)
+        dup = _product(1, "camiseta A", sold=999)
+        b = _product(2, "camiseta B")
+        out = analyzer.dedupe([a, dup, b])
+        assert len(out) == 2
+        assert out[0].sold_count == 50
+
+
+class TestClusterTitles:
+    def test_batches_of_25(self) -> None:
+        titles = [f"camiseta tema {i}" for i in range(26)]
+        # batch 1: 25 titles -> indices 1..25; batch 2: 1 title -> index 1
+        responses = [
+            json.dumps({"clusters": [{"theme": "memes", "indices": [1, 25], "why": "x"}]}),
+            json.dumps({"clusters": [{"theme": "pets", "indices": [1], "why": "y"}]}),
+        ]
+        client = FakeLLM(responses)
+        mapping = analyzer.cluster_titles(titles, client=client)
+
+        assert len(client.user_prompts) == 2  # 26 titles -> 2 batches
+        assert mapping[0] == "memes"  # batch 1, local index 1
+        assert mapping[24] == "memes"  # batch 1, local index 25
+        assert mapping[25] == "pets"  # batch 2, local index 1 -> global 25
+
+    def test_invalid_json_leaves_batch_unclustered(self) -> None:
+        # chat_json retries once by default -> two garbage responses needed
+        client = FakeLLM(["totalmente invalido", "ainda invalido"])
+        mapping = analyzer.cluster_titles(["a", "b"], client=client)
+        assert mapping == {}
+
+    def test_out_of_range_indices_ignored(self) -> None:
+        client = FakeLLM([json.dumps({"clusters": [{"theme": "x", "indices": [99]}]})])
+        mapping = analyzer.cluster_titles(["a"], client=client)
+        assert mapping == {}
+
+
+class TestAnalyze:
+    def test_full_pipeline(self) -> None:
+        products = [
+            _product(1, "camiseta meme gato", price=3000, sold=500),
+            _product(2, "camiseta evangelica leao", price=4000, sold=300),
+            _product(3, "camiseta basica lisa", price=2000, sold=900),
+        ]
+        # NOTE: titles reach the LLM in RANKED order [item3, item1, item2],
+        # so LLM 1-based indices map: 1->item3, 2->item1, 3->item2
+        client = FakeLLM([
+            json.dumps({"clusters": [
+                {"theme": "pets", "indices": [2], "why": "gato"},
+                {"theme": "evangelicas", "indices": [3], "why": "leao"},
+            ]})
+        ])
+        report = analyzer.analyze(products, client=client)
+
+        # ranked by sold_count desc
+        assert [p.product.item_id for p in report.products] == [3, 1, 2]
+        # themes land on the right products after ranking
+        by_id = {p.product.item_id: p.theme for p in report.products}
+        assert by_id == {3: None, 1: "pets", 2: "evangelicas"}
+        # price bands over [2000, 3000, 4000]
+        assert report.price_p50_cents == 3000
+        assert report.theme_counts == [("evangelicas", 1), ("pets", 1)]
