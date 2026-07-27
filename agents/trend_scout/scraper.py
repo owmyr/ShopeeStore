@@ -13,6 +13,7 @@ Dev usage: python -m agents.trend_scout.scraper --dry-run
 from __future__ import annotations
 
 import argparse
+import logging
 import random
 import re
 import time
@@ -23,6 +24,8 @@ from pathlib import Path
 from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
 
 from core.config import get_settings
+
+log = logging.getLogger(__name__)
 
 ITEM_HREF_RE = re.compile(r"-i\.(\d+)\.(\d+)")
 DEFAULT_SEARCH_URL = "https://shopee.com.br/search?keyword=camiseta&sortBy=sales"
@@ -338,6 +341,9 @@ def scrape_best_sellers(
                                 )
                             )
                     stagnant_pages = stagnant_pages + 1 if len(seen) == before else 0
+                    log.info(
+                        "scrape page %d done: %d/%d products", page_num, len(seen), target
+                    )
                     page_num += 1
                 return list(seen.values())[:target]
             except Exception:
