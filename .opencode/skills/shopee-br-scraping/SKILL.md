@@ -5,6 +5,19 @@ description: Shopee Brazil (shopee.com.br) Playwright scraping patterns - catego
 
 # Shopee BR scraping
 
+## Auth (HARD REQUIREMENT - verified 2026-07)
+- Anonymous scraping hits a login wall: search/category URLs redirect to
+  `shopee.com.br/verify/traffic/error` ("Login Necessario") for unauthenticated
+  sessions, even with clean fingerprint + delays.
+- Solution: one-time manual login via headed Playwright
+  (`python -m agents.trend_scout.scraper --login`), session persisted with
+  `context.storage_state()` to `SHOPEE_AUTH_PATH` (default
+  `data/shopee_auth.json`, gitignored - NEVER commit it).
+- All scrape runs load `storage_state` from that file.
+- Detect expiry: after `goto`, if `page.url` contains `/verify/traffic` or
+  `/buyer/login` -> screenshot + raise `ShopeeAuthError` (tell user to
+  re-run --login). Never silently scrape zero products.
+
 ## Category URL
 - Format: `https://shopee.com.br/{slug}-cat.{shopid}.{categoryid}`
 - Category IDs are NOT stable across documentation; resolve the exact

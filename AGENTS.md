@@ -19,6 +19,9 @@ Agents: Trend Scout (MVP). Design brief, supplier comms, listing agents deferred
 - LLM batching: max 25 product titles per call (small-model JSON discipline).
 - Scraping: polite delays 3-6s/page with jitter; pause every 25 items;
   screenshot to `data/` on error; `--dry-run` flag (5 products) for dev.
+- Shopee auth: anonymous scraping is blocked (login wall). Session lives in
+  `SHOPEE_AUTH_PATH` (gitignored); refresh via
+  `python -m agents.trend_scout.scraper --login`. Never commit auth state.
 - Observability: every agent run must log to the ledger (`core/ledger.py`) -
   agent name, start/end, inputs hash, outputs path, status, error.
 - No cloud LLM calls. No secrets in code; use `.env` (copy from `.env.example`).

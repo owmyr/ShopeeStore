@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     # Storage
     db_path: Path = PROJECT_ROOT / "data" / "shopee.db"
     ledger_path: Path = PROJECT_ROOT / "data" / "ledger.jsonl"
+    shopee_auth_path: Path = PROJECT_ROOT / "data" / "shopee_auth.json"
 
     @property
     def data_dir(self) -> Path:
