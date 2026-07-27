@@ -111,11 +111,12 @@ with tab_trends:
         payload = json.loads((report_dir / "report.json").read_text(encoding="utf-8"))
         st.caption(f"Report: {report_dir.name}")
 
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Products", payload["product_count"])
-        c2.metric("p25", brl(payload["price_p25_cents"]))
-        c3.metric("Median", brl(payload["price_p50_cents"]))
-        c4.metric("p75", brl(payload["price_p75_cents"]))
+        c1, c2, c3, c4, c5 = st.columns(5)
+        c1.metric("Printed analyzed", payload.get("printed_count", payload["product_count"]))
+        c2.metric("Excluded (plain)", payload.get("excluded_plain_count", 0))
+        c3.metric("p25", brl(payload["price_p25_cents"]))
+        c4.metric("Median", brl(payload["price_p50_cents"]))
+        c5.metric("p75", brl(payload["price_p75_cents"]))
 
         if payload["theme_counts"]:
             themes = pd.DataFrame(payload["theme_counts"], columns=["theme", "count"])
@@ -140,10 +141,10 @@ with tab_trends:
             )
 
 with tab_gallery:
-    images_dir = get_settings().data_dir / "images"
+    reference_dir = get_settings().data_dir / "reference"
     report_dir = latest_report_dir()
-    if not images_dir.exists() or not any(images_dir.glob("*.jpg")):
-        st.info("No images yet - run the Image Harvester (sidebar).")
+    if not reference_dir.exists() or not any(reference_dir.rglob("*.jpg")):
+        st.info("No reference images yet - run the Image Harvester (sidebar).")
     else:
         meta: dict[int, dict] = {}
         if report_dir is not None:
@@ -151,26 +152,27 @@ with tab_gallery:
             meta = {p["item_id"]: p for p in payload["products"]}
 
         cards = []
-        for img in sorted(images_dir.glob("*.jpg")):
+        for img in sorted(reference_dir.rglob("*.jpg")):
             item_id = int(img.stem)
             info = meta.get(item_id, {})
             cards.append(
                 {
                     "path": img,
+                    "folder": img.parent.name,  # theme slug from folder structure
                     "sold": info.get("sold_count", 0),
-                    "theme": info.get("theme") or "(unclustered)",
+                    "theme": info.get("theme") or img.parent.name,
                     "price": info.get("price_cents", 0),
                 }
             )
         cards.sort(key=lambda c: c["sold"], reverse=True)
 
-        themes = sorted({c["theme"] for c in cards})
-        chosen = st.multiselect("Filter by theme", themes, default=themes)
-        shown = [c for c in cards if c["theme"] in chosen][:24]
-        st.caption(f"{len(shown)} of {len(cards)} images (top by sold)")
+        folders = sorted({c["folder"] for c in cards})
+        chosen = st.multiselect("Filter by theme folder", folders, default=folders)
+        shown = [c for c in cards if c["folder"] in chosen][:24]
+        st.caption(f"{len(shown)} of {len(cards)} printed-shirt references (top by sold)")
 
         cols = st.columns(4)
         for i, card in enumerate(shown):
             with cols[i % 4]:
-                caption = f"{card['theme']} | {card['sold']} sold | {brl(card['price'])}"
+                caption = f"{card['folder']} | {card['sold']} sold | {brl(card['price'])}"
                 st.image(str(card["path"]), caption=caption, width="stretch")
