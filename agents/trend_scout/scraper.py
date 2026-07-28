@@ -194,11 +194,15 @@ def _is_login_flow_url(url: str) -> bool:
     return _is_auth_wall(url) or "/buyer/signup" in url or "/verify/" in url
 
 
-def _dismiss_cookie_banner(page: Page) -> None:
-    try:
-        page.get_by_text("Aceitar todos os cookies", exact=False).click(timeout=3000)
-    except Exception:  # noqa: BLE001 - banner may not exist; never fail on this
-        pass
+def _dismiss_overlays(page: Page) -> None:
+    """Best-effort dismissal of blocking overlays (cookie banner, language
+    modal). Never fails - overlays may not exist."""
+    for text in ("Português (BR)", "Aceitar todos os cookies"):
+        try:
+            page.get_by_text(text, exact=False).first.click(timeout=1500)
+            page.wait_for_timeout(400)
+        except Exception:  # noqa: BLE001 - overlay may not exist
+            pass
 
 
 def login(timeout_sec: int = 600) -> Path:
@@ -211,12 +215,14 @@ def login(timeout_sec: int = 600) -> Path:
         try:
             page = context.new_page()
             page.goto("https://shopee.com.br/", wait_until="domcontentloaded", timeout=60000)
-            _dismiss_cookie_banner(page)
+            _dismiss_overlays(page)
             page.goto(
                 "https://shopee.com.br/buyer/login",
                 wait_until="domcontentloaded",
                 timeout=60000,
             )
+            page.wait_for_timeout(1500)
+            _dismiss_overlays(page)  # language modal can appear on login page too
             print(">>> Faca login na janela do navegador. <<<", flush=True)
             print(
                 ">>> Se concluir o login e nao detectar, navegue para "
@@ -334,7 +340,7 @@ def scrape_best_sellers(
                     page.goto(page_url(url, page_num), wait_until="domcontentloaded", timeout=60000)
                     page.wait_for_timeout(random.randint(3000, 5000))
                     if page_num == 0:
-                        _dismiss_cookie_banner(page)
+                        _dismiss_overlays(page)
                     if _is_auth_wall(page.url):
                         raise ShopeeAuthError(
                             f"session expired or rejected (landed on {page.url}) - "
