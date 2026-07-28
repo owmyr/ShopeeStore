@@ -77,6 +77,17 @@ class TestSearchUrl:
         )
 
 
+class TestWallDetection:
+    def test_captcha_wall(self) -> None:
+        assert scraper._is_captcha_wall("https://shopee.com.br/verify/captcha?x=1")
+        assert not scraper._is_captcha_wall("https://shopee.com.br/verify/traffic/error")
+        assert not scraper._is_captcha_wall("https://shopee.com.br/search?keyword=x")
+
+    def test_auth_wall_does_not_match_captcha(self) -> None:
+        assert not scraper._is_auth_wall("https://shopee.com.br/verify/captcha?x=1")
+        assert scraper._is_auth_wall("https://shopee.com.br/verify/traffic/error")
+
+
 class TestPageUrl:
     def test_appends_param(self) -> None:
         assert scraper.page_url("https://x/search?keyword=camiseta", 2) == (

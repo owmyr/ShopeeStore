@@ -180,6 +180,15 @@ def _is_auth_wall(url: str) -> bool:
     return "/verify/traffic" in url or "/buyer/login" in url
 
 
+def _is_captcha_wall(url: str) -> bool:
+    """Anti-bot slider challenge ("Arraste para completar o quebra-cabeca").
+
+    Distinct from the login wall: the session is valid but flagged (usually
+    after heavy scraping). Remedy is the same: re-run --login and solve the
+    puzzle in the headed browser."""
+    return "/verify/captcha" in url
+
+
 def _is_login_flow_url(url: str) -> bool:
     """URLs seen while auth is still in progress (not yet logged in)."""
     return _is_auth_wall(url) or "/buyer/signup" in url or "/verify/" in url
@@ -317,16 +326,26 @@ def scrape_best_sellers(
                 page_num = 0
                 new_since_pause = 0
 
+                # warmup: enter via the home page (more human than cold search nav)
+                page.goto("https://shopee.com.br/", wait_until="domcontentloaded", timeout=60000)
+                page.wait_for_timeout(random.randint(2500, 4500))
+
                 while len(seen) < target and stagnant_pages < 2 and page_num < MAX_PAGES:
                     page.goto(page_url(url, page_num), wait_until="domcontentloaded", timeout=60000)
                     page.wait_for_timeout(random.randint(3000, 5000))
                     if page_num == 0:
                         _dismiss_cookie_banner(page)
-                        if _is_auth_wall(page.url):
-                            raise ShopeeAuthError(
-                                f"session expired or rejected (landed on {page.url}) - "
-                                "re-run `python -m agents.trend_scout.scraper --login`"
-                            )
+                    if _is_auth_wall(page.url):
+                        raise ShopeeAuthError(
+                            f"session expired or rejected (landed on {page.url}) - "
+                            "re-run `python -m agents.trend_scout.scraper --login`"
+                        )
+                    if _is_captcha_wall(page.url):
+                        raise ShopeeAuthError(
+                            f"anti-bot captcha challenge at page {page_num} ({page.url}) - "
+                            "re-run `python -m agents.trend_scout.scraper --login` "
+                            "and solve the puzzle in the browser"
+                        )
 
                     before = len(seen)
                     stagnant_scrolls = 0

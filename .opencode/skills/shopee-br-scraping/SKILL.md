@@ -14,9 +14,13 @@ description: Shopee Brazil (shopee.com.br) Playwright scraping patterns - catego
   `context.storage_state()` to `SHOPEE_AUTH_PATH` (default
   `data/shopee_auth.json`, gitignored - NEVER commit it).
 - All scrape runs load `storage_state` from that file.
-- Detect expiry: after `goto`, if `page.url` contains `/verify/traffic` or
-  `/buyer/login` -> screenshot + raise `ShopeeAuthError` (tell user to
-  re-run --login). Never silently scrape zero products.
+- Detect expiry: after EVERY page `goto`, check walls. Two distinct walls:
+  - `/verify/traffic` or `/buyer/login` -> session expired/rejected
+  - `/verify/captcha` -> anti-bot slider challenge (session flagged after
+    heavy scraping; user solves puzzle in headed --login window)
+  Both -> screenshot + raise `ShopeeAuthError`. Never silently scrape zero.
+- Warmup: navigate to the home page FIRST, wait 2.5-4.5s, then go to the
+  search URL. Cold direct-to-search navigation is a bot signal.
 
 ## Search keyword (phase 3)
 - Default keyword is `camiseta estampada` (config `SCRAPE_KEYWORD`) - biases
