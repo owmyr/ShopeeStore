@@ -4,12 +4,39 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
+import httpx
 from jinja2 import Environment, FileSystemLoader
 from playwright.sync_api import sync_playwright
 
 from core.config import get_settings
 
 logger = logging.getLogger(__name__)
+
+_CDN_HEADERS = {
+    "Referer": "https://shopee.com.br/",
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36"
+    ),
+}
+
+
+def _fetch_cdn_image(url: str) -> str | None:
+    """Download a Shopee CDN image and return it as a base64 data URI.
+
+    Uses Referer spoofing — Shopee CDN requires a valid shopee.com.br Referer
+    header or it returns a 403. Returns None on any network/HTTP error so the
+    caller can fall back gracefully.
+    """
+    try:
+        resp = httpx.get(url, headers=_CDN_HEADERS, timeout=10, follow_redirects=True)
+        resp.raise_for_status()
+        ct = resp.headers.get("content-type", "image/jpeg").split(";")[0].strip()
+        b64 = base64.b64encode(resp.content).decode("utf-8")
+        return f"data:{ct};base64,{b64}"
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("CDN fetch failed for %s: %s", url, exc)
+        return None
 
 
 def _image_to_base64(img_path: Path) -> str:
@@ -82,7 +109,17 @@ def generate_dossier(
         item_id = product.get("item_id")
         p_theme = product.get("theme") or "unknown"
         img_path = reference_dir / p_theme / f"{item_id}.jpg"
-        product["base64_image"] = _image_to_base64(img_path)
+
+        if img_path.exists():
+            # Happy path: harvester already downloaded this image.
+            product["base64_image"] = _image_to_base64(img_path)
+        else:
+            # Fallback: fetch directly from Shopee's CDN using the scraped URL.
+            # This covers breakout products whose theme slug didn't match the
+            # harvested folder name, or that were scraped after the last harvest.
+            cdn_url = product.get("image_url", "")
+            cdn_data = _fetch_cdn_image(cdn_url) if cdn_url else None
+            product["base64_image"] = cdn_data or _image_to_base64(img_path)  # SVG if all fails
         product["price_brl"] = product.get("price_cents", 0) / 100
         product["velocity"] = f"+{product.get('sold_count', 0)} peças/dia"  # Mocked velocity
 
