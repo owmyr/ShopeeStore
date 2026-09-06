@@ -41,7 +41,7 @@ def search_url(keyword: str) -> str:
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    "(KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36"
 )
 
 _ANCHOR_DUMP_JS = """() => {
@@ -159,14 +159,20 @@ def parse_card_text(text: str) -> tuple[str, int | None, int | None, float | Non
 def _new_context(
     pw, *, headless: bool, with_auth: bool, real_chrome: bool = False
 ) -> tuple[Browser, BrowserContext]:
-    """Launch a browser + context with our standard anti-bot fingerprint."""
+    """Launch a browser + context with our standard anti-bot fingerprint.
+
+    Always uses the installed Google Chrome binary (channel='chrome') to match
+    the exact browser fingerprint Shopee saw during the manual login session.
+    Bundled Playwright Chromium gets flagged by /verify/traffic even with a
+    valid session because the UA version and capability bits differ.
+    """
     settings = get_settings()
     launch_kwargs: dict = {
         "headless": headless,
+        # Always use real Chrome — same fingerprint as the login session.
+        "channel": "chrome",
         "args": ["--disable-blink-features=AutomationControlled"],
     }
-    if real_chrome:
-        launch_kwargs["channel"] = "chrome"  # use installed Google Chrome, not bundled Chromium
     browser = pw.chromium.launch(**launch_kwargs)
     kwargs: dict = {
         "viewport": {"width": 1366, "height": 768},
