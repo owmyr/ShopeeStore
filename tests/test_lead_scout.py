@@ -4,8 +4,8 @@ from unittest.mock import Mock
 import httpx
 
 from agents.lead_scout.agent import run_once
-from agents.lead_scout.enricher import enrich_cnpj
-from agents.lead_scout.extractor import (
+from agents.lead_scout.discovery import (
+    _enrich_cnpj,
     extract_cnpj,
     extract_email,
     extract_instagram,
@@ -61,7 +61,7 @@ def test_enrich_cnpj():
     }
     client.get.return_value = response
 
-    result = enrich_cnpj("00000000000191", client=client)
+    result = _enrich_cnpj("00000000000191", client=client)
     assert result is not None
     assert result["razao_social"] == "BANCO DO BRASIL SA"
     assert result["email"] == "contato@bb.com.br"
@@ -69,7 +69,7 @@ def test_enrich_cnpj():
 
     response.status_code = 404
     client.get.return_value = response
-    assert enrich_cnpj("00000000000192", client=client) is None
+    assert _enrich_cnpj("00000000000192", client=client) is None
 
 
 def test_pitch_generators():

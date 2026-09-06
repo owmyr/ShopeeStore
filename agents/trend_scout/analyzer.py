@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
@@ -26,6 +27,14 @@ from core.config import get_settings
 
 log = logging.getLogger(__name__)
 
+class VelocityMetrics(BaseModel):
+    delta_sold: int = 0
+    days_elapsed: float = 0.0
+    velocity_per_day: float = 0.0
+    is_breakout: bool = False
+    is_new: bool = False
+
+
 BATCH_SIZE = (
     75 if get_settings().llm_provider == "gemini" else 25
 )  # hard rule: max titles per LLM call
@@ -35,7 +44,7 @@ BATCH_SIZE = (
 class AnalyzedProduct:
     product: ScrapedProduct
     theme: str | None = None
-    velocity_metrics: dict[str, Any] = field(default_factory=dict)
+    velocity_metrics: VelocityMetrics = field(default_factory=VelocityMetrics)
 
 
 @dataclass
@@ -135,11 +144,124 @@ def normalize_themes(themes: list[str], *, client: Any | None = None) -> dict[st
     return mapping
 
 
+def analyze_trends(
+    products: list[ScrapedProduct],
+    session: Any | None = None,
+    *,
+    run_id: str | None = None,
+    client: Any | None = None,
+) -> TrendReport:
+    """Full pipeline with deep velocity integration."""
+    velocity_map: dict[int, VelocityMetrics] = {}
+
+    if session and run_id:
+        from sqlmodel import select
+
+        from core.models import PriceSnapshot, Product
+
+        now = datetime.now(UTC).replace(tzinfo=None)
+        item_ids = [p.item_id for p in products]
+
+        if item_ids:
+            db_products = session.exec(select(Product).where(Product.item_id.in_(item_ids))).all()
+            product_ids = [p.id for p in db_products if p.id is not None]
+
+            current_snapshots = session.exec(
+                select(PriceSnapshot).where(
+                    PriceSnapshot.product_id.in_(product_ids), PriceSnapshot.run_id == run_id
+                )
+            ).all()
+            snapshots_map = {
+                snap.product_id: snap for snap in current_snapshots if snap.product_id is not None
+            }
+
+            prior_snapshots: dict[int, PriceSnapshot] = {}
+            if product_ids:
+                stmt = (
+                    select(PriceSnapshot)
+                    .where(
+                        PriceSnapshot.product_id.in_(product_ids),
+                        PriceSnapshot.run_id != run_id,
+                    )
+                    .order_by(PriceSnapshot.captured_at.desc())
+                )
+                results = session.exec(stmt).all()
+                for snapshot in results:
+                    if snapshot.product_id not in prior_snapshots:
+                        prior_snapshots[snapshot.product_id] = snapshot
+
+            velocities_by_db_id = {}
+            for product in db_products:
+                if product.id is None:
+                    continue
+
+                current_snapshot = snapshots_map.get(product.id)
+                if not current_snapshot:
+                    continue
+
+                prior_snapshot = prior_snapshots.get(product.id)
+
+                if prior_snapshot:
+                    delta_sold = max(0, current_snapshot.sold_count - prior_snapshot.sold_count)
+                    days_elapsed = max(
+                        (now - prior_snapshot.captured_at).total_seconds() / 86400.0,
+                        1.0 / 24.0,
+                    )
+                    velocity_per_day = round(delta_sold / days_elapsed, 1)
+                    is_new = False
+                else:
+                    days_since_first_seen = max(
+                        (now - product.first_seen_at).total_seconds() / 86400.0, 1.0
+                    )
+                    velocity_per_day = round(current_snapshot.sold_count / days_since_first_seen, 1)
+                    delta_sold = current_snapshot.sold_count
+                    days_elapsed = round(days_since_first_seen, 1)
+                    is_new = True
+
+                velocities_by_db_id[product.id] = {
+                    "delta_sold": delta_sold,
+                    "days_elapsed": days_elapsed,
+                    "velocity_per_day": velocity_per_day,
+                    "is_new": is_new,
+                    "is_breakout": False,
+                }
+
+            valid_velocities = [
+                v["velocity_per_day"]
+                for v in velocities_by_db_id.values()
+                if v["velocity_per_day"] > 0
+            ]
+
+            threshold = 20.0
+            if valid_velocities:
+                valid_velocities.sort()
+                idx = int(len(valid_velocities) * 0.9)
+                top_10_threshold = valid_velocities[idx]
+                threshold = min(threshold, top_10_threshold)
+
+            for v in velocities_by_db_id.values():
+                if v["velocity_per_day"] > 0 and v["velocity_per_day"] >= threshold:
+                    v["is_breakout"] = True
+
+            for p in db_products:
+                if p.id in velocities_by_db_id:
+                    v_dict = velocities_by_db_id[p.id]
+                    velocity_map[p.item_id] = VelocityMetrics(
+                        delta_sold=v_dict["delta_sold"],
+                        days_elapsed=v_dict["days_elapsed"],
+                        velocity_per_day=v_dict["velocity_per_day"],
+                        is_breakout=v_dict["is_breakout"],
+                        is_new=v_dict["is_new"],
+                    )
+
+    return analyze(products, client=client, velocity_map=velocity_map)
+
+
 def analyze(
     products: list[ScrapedProduct],
     *,
     client: Any | None = None,
-    velocity_map: dict[int, dict[str, Any]] | None = None,
+    velocity_map: dict[int, VelocityMetrics] | None = None,
 ) -> TrendReport:
     """Full pipeline: dedupe -> drop plains -> rank -> price bands -> themes.
 
@@ -171,10 +293,14 @@ def analyze(
         theme = themes.get(idx)
         if theme:
             theme = canonical.get(theme, theme)
-        vel = velocity_map.get(product.item_id, {}) if velocity_map else {}
+        vel = (
+            velocity_map.get(product.item_id, VelocityMetrics())
+            if velocity_map
+            else VelocityMetrics()
+        )
         analyzed.append(AnalyzedProduct(product=product, theme=theme, velocity_metrics=vel))
 
-        velocity_per_day = vel.get("velocity_per_day", 0.0)
+        velocity_per_day = vel.velocity_per_day
 
         if theme and theme != NAO_ESTAMPADA:
             counts[theme] = counts.get(theme, 0) + 1
@@ -187,8 +313,8 @@ def analyze(
     breakouts = []
     for ap in analyzed:
         p = ap.product
-        vel = velocity_map.get(p.item_id, {}) if velocity_map else {}
-        if vel.get("is_breakout", False):
+        vel = velocity_map.get(p.item_id, VelocityMetrics()) if velocity_map else VelocityMetrics()
+        if vel.is_breakout:
             breakouts.append(
                 {
                     "item_id": p.item_id,
@@ -200,11 +326,11 @@ def analyze(
                     "rating": p.rating,
                     "theme": ap.theme,
                     "image_url": p.image_url,
-                    "velocity_per_day": vel.get("velocity_per_day", 0.0),
-                    "delta_sold": vel.get("delta_sold", 0),
-                    "days_elapsed": vel.get("days_elapsed", 0.0),
+                    "velocity_per_day": vel.velocity_per_day,
+                    "delta_sold": vel.delta_sold,
+                    "days_elapsed": vel.days_elapsed,
                     "is_breakout": True,
-                    "is_new": vel.get("is_new", False),
+                    "is_new": vel.is_new,
                 }
             )
 

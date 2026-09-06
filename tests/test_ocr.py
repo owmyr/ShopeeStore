@@ -6,7 +6,7 @@ import pytest
 from PIL import Image
 from sqlmodel import Session, SQLModel, create_engine
 
-from agents.lead_scout.ocr import extract_watermark_handles, scan_shop_reference_images
+from agents.lead_scout.discovery import extract_watermark_handles, scan_shop_reference_images
 from core.models import Product
 
 
@@ -38,7 +38,7 @@ def test_extract_watermark_handles_regex(monkeypatch):
         call_count += 1
         return MockResult(stdout)
 
-    monkeypatch.setattr("agents.lead_scout.ocr.subprocess.run", mock_run)
+    monkeypatch.setattr("agents.lead_scout.discovery.subprocess.run", mock_run)
 
     with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tf:
         img = Image.new("RGB", (100, 100), color="white")
@@ -104,7 +104,7 @@ def test_scan_shop_reference_images(test_db, monkeypatch, tmp_path):
             return ["marca1"]
         return []
 
-    monkeypatch.setattr("agents.lead_scout.ocr.extract_watermark_handles", mock_extract)
+    monkeypatch.setattr("agents.lead_scout.discovery.extract_watermark_handles", mock_extract)
 
     handle = scan_shop_reference_images(10, test_db, tmp_path)
     assert handle == "marca1"

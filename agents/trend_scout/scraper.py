@@ -398,9 +398,6 @@ def scrape_best_sellers(
         browser, context = _new_context(pw, headless=settings.scrape_headless, with_auth=True)
         try:
             page = context.new_page()
-            page.add_init_script(
-                "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"
-            )
 
             network_items_captured = 0
 

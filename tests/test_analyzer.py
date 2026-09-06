@@ -188,6 +188,8 @@ class TestAnalyze:
 def force_ollama_for_tests(monkeypatch):
     monkeypatch.setenv("LLM_PROVIDER", "ollama")
     from core.config import get_settings
+
     get_settings.cache_clear()
     import agents.trend_scout.analyzer
+
     agents.trend_scout.analyzer.BATCH_SIZE = 25

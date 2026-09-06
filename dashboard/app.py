@@ -6,110 +6,35 @@ Run: python -m streamlit run dashboard/app.py
 
 from __future__ import annotations
 
-import io
-import json
-import subprocess
-import sys
 import urllib.parse
-import zipfile
-from datetime import UTC, datetime
-from pathlib import Path
-from typing import Any
 
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from sqlmodel import select
 
-from agents.lead_scout.pitch import (
+from core import db
+from core.config import get_settings
+from dashboard.pitches import (
     generate_email_pitch,
     generate_instagram_pitch,
     generate_instagram_url,
     generate_shopee_chat_pitch,
 )
-from core import db
-from core.config import PROJECT_ROOT, get_settings
-from core.models import AgentLedger, StoreLead
+from dashboard.supervision import (
+    build_dossier_zip,
+    get_crm_leads,
+    get_latest_trend_report,
+    get_ledger_history,
+    start_background_agent,
+    update_lead_crm,
+)
 
 st.set_page_config(page_title="ShopeeStore Supervision", layout="wide")
 db.init_db()
 
 
-def load_ledger() -> pd.DataFrame:
-    with db.session_scope() as s:
-        rows = list(s.exec(select(AgentLedger).order_by(AgentLedger.started_at.desc())).all())  # type: ignore[attr-defined]
-    if not rows:
-        return pd.DataFrame()
-    return pd.DataFrame(
-        [
-            {
-                "started_at (UTC)": r.started_at,
-                "agent": r.agent,
-                "status": r.status,
-                "duration_s": round(r.duration_sec or 0, 1),
-                "outputs": r.outputs_path,
-                "error": (r.error or "").splitlines()[-1][:120] if r.error else "",
-            }
-            for r in rows
-        ]
-    )
-
-
-def latest_report_dir() -> Path | None:
-    reports = get_settings().data_dir / "reports"
-    if not reports.exists():
-        return None
-    dirs = sorted((d for d in reports.iterdir() if (d / "report.json").exists()))
-    return dirs[-1] if dirs else None
-
-
-def start_agent(module: str, args: list[str], log_name: str) -> None:
-    """Detached background run; output goes to data/<log_name>."""
-    extra_kwargs: dict[str, Any] = {}
-    if sys.platform == "win32":
-        extra_kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS
-    else:
-        extra_kwargs["start_new_session"] = True
-
-    log_path = get_settings().data_dir / log_name
-    with open(log_path, "ab") as log_file:
-        subprocess.Popen(  # noqa: S603 - fixed argv, no shell
-            [sys.executable, "-m", module, *args],
-            cwd=PROJECT_ROOT,
-            stdin=subprocess.DEVNULL,
-            stdout=log_file,
-            stderr=subprocess.STDOUT,
-            **extra_kwargs,
-        )
-
-
 def brl(cents: float) -> str:
     return f"R$ {cents / 100:,.2f}"
-
-
-@st.cache_data(show_spinner="Building ZIP...")
-def build_dossier_zip(report_name: str, payload: dict) -> bytes:
-    """Build an in-memory ZIP containing the commercial summary CSV and all reference images."""
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        # 1. Add CSV
-        products = payload.get("products", [])
-        df = pd.DataFrame(products)
-        if not df.empty:
-            df["price_brl"] = df["price_cents"] / 100
-            csv_cols = ["item_id", "theme", "sold_count", "price_brl", "title", "url"]
-            available_cols = [c for c in csv_cols if c in df.columns]
-            csv_str = df[available_cols].to_csv(index=False)
-            zf.writestr("commercial_summary.csv", csv_str)
-
-        # 2. Add images
-        reference_dir = get_settings().data_dir / "reference"
-        if reference_dir.exists():
-            for img in reference_dir.rglob("*.jpg"):
-                folder = img.parent.name
-                arcname = f"images/{folder}/{img.name}"
-                zf.write(img, arcname=arcname)
-    return buf.getvalue()
 
 
 st.title("ShopeeStore - Agent Supervision")
@@ -117,16 +42,18 @@ st.title("ShopeeStore - Agent Supervision")
 with st.sidebar:
     st.header("Actions")
     if st.button("Run Trend Scout now (full, ~15 min)"):
-        start_agent("agents.trend_scout.agent", ["--force"], "agent_run_now.log")
+        start_background_agent("agents.trend_scout.agent", ["--force"], "agent_run_now.log")
         st.success("Started in background. Refresh in a few minutes.")
     if st.button("Dry-run (5 products)"):
-        start_agent("agents.trend_scout.agent", ["--dry-run", "--force"], "agent_run_now.log")
+        start_background_agent(
+            "agents.trend_scout.agent", ["--dry-run", "--force"], "agent_run_now.log"
+        )
         st.success("Dry-run started. Refresh in ~1 minute.")
     if st.button("Harvest images now"):
-        start_agent("agents.image_harvester.agent", ["--force"], "agent_run_now.log")
+        start_background_agent("agents.image_harvester.agent", ["--force"], "agent_run_now.log")
         st.success("Harvest started. Refresh in ~1 minute.")
     if st.button("Run Lead Scout now"):
-        start_agent("agents.lead_scout.agent", [], "agent_run_now.log")
+        start_background_agent("agents.lead_scout.agent", [], "agent_run_now.log")
         st.success("Lead Scout started. Refresh in a few minutes.")
     st.caption("Logs: data/agent_run_now.log")
 
@@ -135,28 +62,28 @@ tab_ledger, tab_trends, tab_gallery, tab_crm = st.tabs(
 )
 
 with tab_ledger:
-    df = load_ledger()
+    df_rows = get_ledger_history()
+    df = pd.DataFrame(df_rows)
     if df.empty:
         st.info("No agent runs recorded yet.")
     else:
         st.dataframe(df, width="stretch", hide_index=True)
 
 with tab_trends:
-    report_dir = latest_report_dir()
-    if report_dir is None:
+    report_dir, payload = get_latest_trend_report()
+    if report_dir is None or payload is None:
         st.info("No reports yet - run the Trend Scout.")
     else:
-        payload = json.loads((report_dir / "report.json").read_text(encoding="utf-8"))
         st.caption(f"Report: {report_dir.name}")
 
         c1, c2, c3, c4, c5 = st.columns(5)
-        c1.metric("Printed analyzed", payload.get("printed_count", payload["product_count"]))
+        c1.metric("Printed analyzed", payload.get("printed_count", payload.get("product_count", 0)))
         c2.metric("Excluded (plain)", payload.get("excluded_plain_count", 0))
-        c3.metric("p25", brl(payload["price_p25_cents"]))
-        c4.metric("Median", brl(payload["price_p50_cents"]))
-        c5.metric("p75", brl(payload["price_p75_cents"]))
+        c3.metric("p25", brl(payload.get("price_p25_cents", 0)))
+        c4.metric("Median", brl(payload.get("price_p50_cents", 0)))
+        c5.metric("p75", brl(payload.get("price_p75_cents", 0)))
 
-        if payload["theme_counts"]:
+        if payload.get("theme_counts"):
             themes = pd.DataFrame(payload["theme_counts"], columns=["theme", "count"])
             st.plotly_chart(
                 px.bar(
@@ -165,7 +92,7 @@ with tab_trends:
                 width="stretch",
             )
 
-        products = pd.DataFrame(payload["products"])
+        products = pd.DataFrame(payload.get("products", []))
         if not products.empty:
             products["price_brl"] = products["price_cents"] / 100
             st.plotly_chart(
@@ -204,11 +131,10 @@ with tab_trends:
 
 with tab_gallery:
     reference_dir = get_settings().data_dir / "reference"
-    report_dir = latest_report_dir()
+    report_dir, payload = get_latest_trend_report()
 
-    if report_dir:
-        payload = json.loads((report_dir / "report.json").read_text(encoding="utf-8"))
-        zip_data = build_dossier_zip(report_dir.name, payload)
+    if report_dir and payload:
+        zip_data = build_dossier_zip(str(report_dir))
         st.download_button(
             label="Download Weekly Dossier (.ZIP)",
             data=zip_data,
@@ -251,13 +177,15 @@ with tab_gallery:
         st.info("No reference images yet - run the Image Harvester (sidebar).")
     else:
         meta: dict[int, dict] = {}
-        if report_dir is not None:
-            payload = json.loads((report_dir / "report.json").read_text(encoding="utf-8"))
-            meta = {p["item_id"]: p for p in payload["products"]}
+        if payload:
+            meta = {p["item_id"]: p for p in payload.get("products", [])}
 
         cards = []
         for img in sorted(reference_dir.rglob("*.jpg")):
-            item_id = int(img.stem)
+            try:
+                item_id = int(img.stem)
+            except ValueError:
+                continue
             info = meta.get(item_id, {})
             cards.append(
                 {
@@ -282,8 +210,7 @@ with tab_gallery:
                 st.image(str(card["path"]), caption=caption, width="stretch")
 
 with tab_crm:
-    with db.session_scope() as s:
-        leads = list(s.exec(select(StoreLead).order_by(StoreLead.discovered_at.desc())).all())
+    leads = get_crm_leads()
 
     if not leads:
         st.info(
@@ -427,14 +354,7 @@ with tab_crm:
                     or new_notes != (lead.notes or "")
                     or clean_insta != lead.instagram
                 ):
-                    with db.session_scope() as s:
-                        db_lead = s.get(StoreLead, lead.id)
-                        if db_lead:
-                            db_lead.status = new_status
-                            db_lead.notes = new_notes
-                            db_lead.instagram = clean_insta
-                            if new_status == "contacted" and not db_lead.last_contacted_at:
-                                db_lead.last_contacted_at = datetime.now(UTC).replace(tzinfo=None)
-                            s.add(db_lead)
-                            s.commit()
-                    st.rerun()
+                    if lead.id is not None:
+                        update_lead_crm(lead.id, new_status, new_notes, clean_insta)
+                        st.rerun()
+

@@ -5,15 +5,7 @@ import httpx
 from sqlalchemy import func
 from sqlmodel import select
 
-from agents.lead_scout.enricher import (
-    GOOGLEBOT_HEADERS,
-    fetch_shopee_shop_metadata,
-)
-from agents.lead_scout.enricher import (
-    enrich_cnpj as do_enrich_cnpj,
-)
-from agents.lead_scout.extractor import extract_cnpj, extract_email, extract_instagram
-from agents.lead_scout.ocr import scan_shop_reference_images
+from agents.lead_scout.discovery import GOOGLEBOT_HEADERS, discover_lead
 from core import ledger
 from core.db import session_scope
 from core.models import PriceSnapshot, Product, StoreLead
@@ -63,94 +55,70 @@ def run_once(
 
                     top_product = result[0]
 
-                    # Query public shop metadata (brand name and bio) from Shopee
-                    shop_meta = fetch_shopee_shop_metadata(shop_id, client=client)
-                    real_name = shop_meta.get("shop_name") or shop_name
-                    bio_desc = shop_meta.get("description") or ""
-
-                    # Extract text
-                    text_corpus = f"{real_name} {bio_desc} {top_product.title}"
-
-                    cnpj = shop_meta.get("cnpj") or extract_cnpj(text_corpus)
-                    email = shop_meta.get("email") or extract_email(text_corpus)
-                    instagram = shop_meta.get("instagram") or extract_instagram(text_corpus)
-                    if not instagram:
-                        instagram = scan_shop_reference_images(shop_id, session)
-
-                    razao_social = None
-                    nome_fantasia = None
-                    city = None
-                    state = None
-
-                    if cnpj and enrich_cnpj:
-                        enriched = do_enrich_cnpj(cnpj, client)
-                        if enriched:
-                            razao_social = enriched.get("razao_social")
-                            nome_fantasia = enriched.get("nome_fantasia")
-                            email = email or enriched.get("email")
-                            city = enriched.get("city")
-                            state = enriched.get("state")
+                    enriched_lead = discover_lead(
+                        shop_id=shop_id,
+                        shop_name=shop_name,
+                        top_product=top_product,
+                        session=session,
+                        client=client,
+                        enrich_cnpj=enrich_cnpj,
+                    )
 
                     # Check if StoreLead exists
                     lead_query = select(StoreLead).where(StoreLead.shop_id == shop_id)
                     existing_lead = session.exec(lead_query).first()
 
                     now = datetime.now(UTC)
-
-                    effective_shop_name = (real_name or "").strip() or f"Loja #{shop_id}"
                     shop_url = f"https://shopee.com.br/shop/{shop_id}"
 
                     if existing_lead:
-                        existing_lead.top_product_title = top_product.title
-                        if real_name and (
-                            not existing_lead.shop_name
-                            or existing_lead.shop_name.startswith("Loja #")
+                        existing_lead.top_product_title = enriched_lead.top_product_title
+                        if not existing_lead.shop_name or existing_lead.shop_name.startswith(
+                            "Loja #"
                         ):
-                            existing_lead.shop_name = real_name
-                        elif not existing_lead.shop_name:
-                            existing_lead.shop_name = effective_shop_name
+                            existing_lead.shop_name = enriched_lead.shop_name
 
                         if not existing_lead.shop_url:
                             existing_lead.shop_url = shop_url
                         if not existing_lead.top_theme:
                             existing_lead.top_theme = "camisetas estampadas"
 
-                        if instagram and not existing_lead.instagram:
-                            existing_lead.instagram = instagram
-                        if email and not existing_lead.email:
-                            existing_lead.email = email
-                        if cnpj and not existing_lead.cnpj:
-                            existing_lead.cnpj = cnpj
-                        if razao_social and not existing_lead.razao_social:
-                            existing_lead.razao_social = razao_social
-                        if nome_fantasia and not existing_lead.nome_fantasia:
-                            existing_lead.nome_fantasia = nome_fantasia
-                        if city and not existing_lead.city:
-                            existing_lead.city = city
-                        if state and not existing_lead.state:
-                            existing_lead.state = state
+                        if enriched_lead.instagram and not existing_lead.instagram:
+                            existing_lead.instagram = enriched_lead.instagram
+                        if enriched_lead.email and not existing_lead.email:
+                            existing_lead.email = enriched_lead.email
+                        if enriched_lead.cnpj and not existing_lead.cnpj:
+                            existing_lead.cnpj = enriched_lead.cnpj
+                        if enriched_lead.razao_social and not existing_lead.razao_social:
+                            existing_lead.razao_social = enriched_lead.razao_social
+                        if enriched_lead.nome_fantasia and not existing_lead.nome_fantasia:
+                            existing_lead.nome_fantasia = enriched_lead.nome_fantasia
+                        if enriched_lead.city and not existing_lead.city:
+                            existing_lead.city = enriched_lead.city
+                        if enriched_lead.state and not existing_lead.state:
+                            existing_lead.state = enriched_lead.state
 
-                        if cnpj and enrich_cnpj:
+                        if enriched_lead.cnpj and enrich_cnpj:
                             existing_lead.enriched_at = now
 
                         session.add(existing_lead)
                     else:
                         new_lead = StoreLead(
                             shop_id=shop_id,
-                            shop_name=effective_shop_name,
+                            shop_name=enriched_lead.shop_name,
                             shop_url=shop_url,
-                            instagram=instagram,
-                            email=email,
-                            cnpj=cnpj,
-                            razao_social=razao_social,
-                            nome_fantasia=nome_fantasia,
-                            city=city,
-                            state=state,
+                            instagram=enriched_lead.instagram,
+                            email=enriched_lead.email,
+                            cnpj=enriched_lead.cnpj,
+                            razao_social=enriched_lead.razao_social,
+                            nome_fantasia=enriched_lead.nome_fantasia,
+                            city=enriched_lead.city,
+                            state=enriched_lead.state,
                             status="discovered",
                             top_theme="camisetas estampadas",
-                            top_product_title=top_product.title,
+                            top_product_title=enriched_lead.top_product_title,
                             discovered_at=now,
-                            enriched_at=now if (cnpj and enrich_cnpj) else None,
+                            enriched_at=now if (enriched_lead.cnpj and enrich_cnpj) else None,
                             run_id=handle.run_id,
                         )
                         session.add(new_lead)
