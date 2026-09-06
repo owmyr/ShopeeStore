@@ -41,11 +41,25 @@ def detect_spikes(
     for p in products:
         prev = previous.get(p.item_id)
         if prev is None:
-            spikes.append({"item_id": p.item_id, "title": p.title, "kind": "new",
-                           "sold": p.sold_count, "jump": None})
+            spikes.append(
+                {
+                    "item_id": p.item_id,
+                    "title": p.title,
+                    "kind": "new",
+                    "sold": p.sold_count,
+                    "jump": None,
+                }
+            )
         elif p.sold_count - prev.sold_count >= jump_abs:
-            spikes.append({"item_id": p.item_id, "title": p.title, "kind": "jump",
-                           "sold": p.sold_count, "jump": p.sold_count - prev.sold_count})
+            spikes.append(
+                {
+                    "item_id": p.item_id,
+                    "title": p.title,
+                    "kind": "jump",
+                    "sold": p.sold_count,
+                    "jump": p.sold_count - prev.sold_count,
+                }
+            )
     return spikes
 
 

@@ -1,26 +1,12 @@
 """Ledger tests."""
 
 import json
-from collections.abc import Iterator
 
 import pytest
 from sqlmodel import select
 
 from core import db, ledger
-from core.config import get_settings
 from core.models import AgentLedger
-
-
-@pytest.fixture()
-def isolated(tmp_path, monkeypatch) -> Iterator[None]:
-    monkeypatch.setenv("DB_PATH", str(tmp_path / "test.db"))
-    monkeypatch.setenv("LEDGER_PATH", str(tmp_path / "ledger.jsonl"))
-    get_settings.cache_clear()
-    db.reset_engine()
-    db.init_db()
-    yield
-    db.reset_engine()
-    get_settings.cache_clear()
 
 
 def _all_runs() -> list[AgentLedger]:

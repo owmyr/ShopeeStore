@@ -1,5 +1,6 @@
 """Image downloader for the Shopee CDN (plain HTTP - no browser needed)."""
 
+import re
 from pathlib import Path
 
 import httpx
@@ -11,6 +12,13 @@ HEADERS = {
     ),
     "Referer": "https://shopee.com.br/",
 }
+
+
+def clean_shopee_image_url(url: str) -> str:
+    """Strip Shopee thumbnail suffixes and resize parameters for full resolution."""
+    clean = url.split("?")[0].split("#")[0]
+    clean = re.sub(r"@.*$", "", clean)
+    return re.sub(r"_tn(?=\.|$)", "", clean)
 
 
 def _fetch(client: httpx.Client, url: str, dest: Path, timeout: float) -> bool:
@@ -36,7 +44,20 @@ def download_image(
     if dest.exists():
         return True
     dest.parent.mkdir(parents=True, exist_ok=True)
-    if client is not None:
-        return _fetch(client, url, dest, timeout)
-    with httpx.Client(headers=HEADERS, follow_redirects=True) as c:
-        return _fetch(c, url, dest, timeout)
+
+    clean_url = clean_shopee_image_url(url)
+
+    c = (
+        client
+        if client is not None
+        else httpx.Client(headers=HEADERS, follow_redirects=True, timeout=timeout)
+    )
+
+    try:
+        success = _fetch(c, clean_url, dest, timeout)
+        if not success and clean_url != url:
+            success = _fetch(c, url, dest, timeout)
+        return success
+    finally:
+        if client is None:
+            c.close()

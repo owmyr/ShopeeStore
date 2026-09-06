@@ -23,6 +23,12 @@ def main() -> int:
     harvest = sub.add_parser("harvest", help="download top product images")
     harvest.add_argument("--max", type=int, default=50, help="max images (default 50)")
     sub.add_parser("pulse", help="daily spike radar (top 20 scrape + diff)")
+    dossier_parser = sub.add_parser("dossier", help="generate executive PDF/HTML dossier")
+    dossier_parser.add_argument("--theme", type=str, default=None, help="filter by theme slug")
+    dossier_parser.add_argument("--html-only", action="store_true", help="skip PDF export")
+    leads_parser = sub.add_parser("leads", help="discover and enrich merchant leads")
+    leads_parser.add_argument("--max", type=int, default=50, help="max shops to process")
+    leads_parser.add_argument("--no-enrich", action="store_true", help="skip BrasilAPI calls")
     args = parser.parse_args()
 
     if args.command in ("run", "run-now"):
@@ -71,6 +77,26 @@ def main() -> int:
 
         out = pulse_once()
         print(f"pulse: {out}")
+        return 0
+
+    if args.command == "dossier":
+        import logging
+
+        logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+        from agents.dossier.agent import generate_dossier
+
+        out = generate_dossier(theme_slug=args.theme, output_pdf=not args.html_only)
+        print(f"dossier generated at: {out}")
+        return 0
+
+    if args.command == "leads":
+        import logging
+
+        logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+        from agents.lead_scout.agent import run_once as leads_once
+
+        count = leads_once(max_shops=args.max, enrich_cnpj=not args.no_enrich)
+        print(f"processed {count} shop leads")
         return 0
 
     return 1

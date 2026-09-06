@@ -1,7 +1,6 @@
 """Trend Scout agent orchestration tests (scraper + LLM faked)."""
 
 import json
-from collections.abc import Iterator
 
 import pytest
 from sqlmodel import select
@@ -9,21 +8,8 @@ from sqlmodel import select
 from agents.trend_scout import agent, scraper
 from agents.trend_scout.scraper import ScrapedProduct
 from core import db
-from core.config import get_settings
 from core.models import AgentLedger, PriceSnapshot, Product
-
-
-@pytest.fixture()
-def isolated(tmp_path, monkeypatch) -> Iterator[None]:
-    monkeypatch.setenv("DB_PATH", str(tmp_path / "t.db"))
-    monkeypatch.setenv("LEDGER_PATH", str(tmp_path / "ledger.jsonl"))
-    monkeypatch.setenv("DATA_DIR", str(tmp_path))  # not a real env var; kept for clarity
-    get_settings.cache_clear()
-    db.reset_engine()
-    db.init_db()
-    yield tmp_path
-    db.reset_engine()
-    get_settings.cache_clear()
+from tests.conftest import FakeLLM
 
 
 def _fake_products() -> list[ScrapedProduct]:
@@ -31,11 +17,6 @@ def _fake_products() -> list[ScrapedProduct]:
         ScrapedProduct(1, 10, "camiseta meme gato", "https://x/i.10.1", 3000, 500, 4.8),
         ScrapedProduct(2, 10, "camiseta basica lisa", "https://x/i.10.2", 2000, 900, None),
     ]
-
-
-class FakeLLM:
-    def chat(self, model, messages, **kwargs):
-        return {"message": {"content": json.dumps({"clusters": []})}}
 
 
 def _patch_scraper(monkeypatch, calls: list) -> None:

@@ -7,12 +7,25 @@ Hard rules (see AGENTS.md):
 """
 
 import json
+import logging
+import random
 import re
+import time
 from typing import Any
 
 import ollama
+from pydantic import BaseModel
+
+try:
+    from google import genai
+    from google.genai import types as genai_types
+except ImportError:
+    genai = None
+    genai_types = None
 
 from core.config import get_settings
+
+log = logging.getLogger(__name__)
 
 _FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", re.MULTILINE)
 _JSON_SPAN_RE = re.compile(r"(\{.*\}|\[.*\])", re.DOTALL)
@@ -69,6 +82,71 @@ def parse_json(raw: str) -> Any:
         raise
 
 
+def _chat_json_gemini(
+    system: str,
+    user: str,
+    *,
+    response_model: type[BaseModel] | None = None,
+    temperature: float = 0.2,
+) -> Any:
+    """Uses Gemini models with quota failover and structured outputs."""
+    settings = get_settings()
+    if not settings.gemini_api_key:
+        raise ValueError("gemini_api_key not configured")
+
+    client = genai.Client(api_key=settings.gemini_api_key)
+
+    config_kwargs: dict[str, Any] = {
+        "temperature": temperature,
+        "response_mime_type": "application/json",
+        "system_instruction": system,
+    }
+    if response_model:
+        config_kwargs["response_schema"] = response_model
+
+    for model_name in settings.gemini_model_pool:
+        for attempt in range(settings.gemini_max_retries_503 + 1):
+            try:
+                config = genai_types.GenerateContentConfig(**config_kwargs)
+                resp = client.models.generate_content(
+                    model=model_name, contents=user, config=config
+                )
+                if not resp.text:
+                    raise ValueError("Empty response text")
+                return json.loads(resp.text)
+            except Exception as exc:
+                err_str = str(exc)
+                if "503" in err_str or "UNAVAILABLE" in err_str or "high demand" in err_str.lower():
+                    if attempt < settings.gemini_max_retries_503:
+                        delay = settings.gemini_retry_delay_sec * (1.5**attempt) + random.uniform(
+                            0.5, 2.0
+                        )
+                        log.warning(
+                            (
+                                "Gemini model %s busy (503). Retrying in %.1fs (attempt %d/%d) "
+                                "to preserve top-tier quality..."
+                            ),
+                            model_name,
+                            delay,
+                            attempt + 1,
+                            settings.gemini_max_retries_503,
+                        )
+                        time.sleep(delay)
+                        continue
+                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                    log.warning(
+                        (
+                            "Gemini model %s quota exhausted (429). "
+                            "Rolling over to next model in pool..."
+                        ),
+                        model_name,
+                    )
+                    break
+                log.warning("Gemini model %s error: %s. Rolling over...", model_name, exc)
+                break
+    raise LLMOutputError("All Gemini models failed")
+
+
 def chat_json(
     system: str,
     user: str,
@@ -76,9 +154,22 @@ def chat_json(
     retries: int = 1,
     temperature: float = 0.2,
     client: Any | None = None,
+    response_model: type[BaseModel] | None = None,
 ) -> Any:
     """Chat expecting strict JSON back. Retries once (default) with a stricter
     prompt on parse failure; raises LLMOutputError if still unparseable."""
+    settings = get_settings()
+    if settings.llm_provider == "gemini" and settings.gemini_api_key and genai is not None:
+        try:
+            return _chat_json_gemini(
+                system=system,
+                user=user,
+                response_model=response_model,
+                temperature=temperature,
+            )
+        except (LLMOutputError, ValueError) as exc:
+            log.warning("Gemini failed: %s. Falling back to Ollama...", exc)
+
     client = client or _get_client()
     attempt_user = user
     for attempt in range(retries + 1):

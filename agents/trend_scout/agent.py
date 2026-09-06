@@ -43,9 +43,7 @@ def _persist(products: list[ScrapedProduct], run_id: str) -> None:
     now = _utcnow_naive()
     with db.session_scope() as s:
         for p in products:
-            stmt = select(Product).where(
-                Product.item_id == p.item_id, Product.shop_id == p.shop_id
-            )
+            stmt = select(Product).where(Product.item_id == p.item_id, Product.shop_id == p.shop_id)
             row = s.exec(stmt).first()
             if row is None:
                 row = Product(
@@ -99,6 +97,8 @@ def _write_report(report: TrendReport) -> Path:
         "price_p50_cents": report.price_p50_cents,
         "price_p75_cents": report.price_p75_cents,
         "theme_counts": report.theme_counts,
+        "theme_velocities": report.theme_velocities,
+        "breakout_products": report.breakout_products,
         "products": [
             {
                 "item_id": ap.product.item_id,
@@ -110,6 +110,11 @@ def _write_report(report: TrendReport) -> Path:
                 "rating": ap.product.rating,
                 "theme": ap.theme,
                 "image_url": ap.product.image_url,
+                "velocity_per_day": ap.velocity_metrics.get("velocity_per_day", 0.0),
+                "delta_sold": ap.velocity_metrics.get("delta_sold", 0),
+                "days_elapsed": ap.velocity_metrics.get("days_elapsed", 0.0),
+                "is_breakout": ap.velocity_metrics.get("is_breakout", False),
+                "is_new": ap.velocity_metrics.get("is_new", False),
             }
             for ap in report.products
         ],
@@ -132,8 +137,13 @@ def _write_report(report: TrendReport) -> Path:
         "## Themes",
     ]
     lines += [f"- {theme}: {count}" for theme, count in report.theme_counts] or ["- (none)"]
-    lines += ["", "## Top products (by sold)", "", "| Sold | Price | Theme | Title |",
-              "|---|---|---|---|"]
+    lines += [
+        "",
+        "## Top products (by sold)",
+        "",
+        "| Sold | Price | Theme | Title |",
+        "|---|---|---|---|",
+    ]
     for ap in report.products[:50]:
         p = ap.product
         lines.append(f"| {p.sold_count} | {_brl(p.price_cents)} | {ap.theme or '-'} | {p.title} |")
@@ -179,8 +189,10 @@ def run_once(
     }
     if not force:
         last = ledger.last_successful_run(AGENT_NAME, inputs)
-        if last and last.started_at and (
-            _utcnow_naive() - last.started_at < timedelta(hours=IDEMPOTENCY_HOURS)
+        if (
+            last
+            and last.started_at
+            and (_utcnow_naive() - last.started_at < timedelta(hours=IDEMPOTENCY_HOURS))
         ):
             log.info("skip: identical run succeeded %s ago", _utcnow_naive() - last.started_at)
             return Path(last.outputs_path) if last.outputs_path else None
@@ -188,7 +200,39 @@ def run_once(
     with ledger.run(AGENT_NAME, inputs) as handle:
         products = scraper.scrape_best_sellers(max_products=max_products, dry_run=dry_run)
         _persist(products, handle.run_id)
-        report = analyzer.analyze(products, client=client)
+
+        # Velocity logic
+        now = _utcnow_naive()
+        with db.session_scope() as s:
+            # Re-fetch products to get their db IDs
+            item_ids = [p.item_id for p in products]
+            db_products = s.exec(select(Product).where(Product.item_id.in_(item_ids))).all()
+
+            # Fetch current snapshots
+            product_ids = [p.id for p in db_products if p.id is not None]
+            current_snapshots = s.exec(
+                select(PriceSnapshot).where(
+                    PriceSnapshot.product_id.in_(product_ids), PriceSnapshot.run_id == handle.run_id
+                )
+            ).all()
+            snapshots_map = {
+                snap.product_id: snap for snap in current_snapshots if snap.product_id is not None
+            }
+
+            from agents.trend_scout.velocity import compute_product_velocities, get_prior_snapshots
+
+            prior_snapshots = get_prior_snapshots(s, product_ids, handle.run_id)
+            velocities_by_db_id = compute_product_velocities(
+                db_products, snapshots_map, prior_snapshots, now
+            )
+
+            # map db_id back to item_id for analyzer
+            velocity_map = {}
+            for p in db_products:
+                if p.id in velocities_by_db_id:
+                    velocity_map[p.item_id] = velocities_by_db_id[p.id]
+
+        report = analyzer.analyze(products, client=client, velocity_map=velocity_map)
         out_dir = _write_report(report)
         handle.set_outputs(str(out_dir))
     log.info("trend scout run complete -> %s", out_dir)

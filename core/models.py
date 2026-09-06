@@ -62,3 +62,32 @@ class AgentLedger(SQLModel, table=True):
     outputs_path: str = ""
     error: str = ""
     duration_sec: float | None = None
+
+
+class StoreLead(SQLModel, table=True):
+    """A discovered merchant store for B2B intelligence outreach."""
+
+    __tablename__ = "store_lead"
+
+    id: int | None = Field(default=None, primary_key=True)
+    shop_id: int = Field(unique=True, index=True)
+    shop_name: str
+    shop_url: str = ""
+    instagram: str | None = None
+    email: str | None = None
+    cnpj: str | None = None
+    razao_social: str | None = None
+    nome_fantasia: str | None = None
+    city: str | None = None
+    state: str | None = None
+    status: str = Field(
+        default="discovered", index=True
+    )  # discovered | contacted | interested | rejected
+    preferred_channel: str = "instagram"  # instagram | email
+    top_theme: str | None = None
+    top_product_title: str | None = None
+    discovered_at: datetime
+    enriched_at: datetime | None = None
+    last_contacted_at: datetime | None = None
+    notes: str = ""
+    run_id: str = Field(index=True)

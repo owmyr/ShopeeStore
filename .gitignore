@@ -1,7 +1,7 @@
 # Python
 __pycache__/
 *.py[cod]
-.venv/
+.venv*/
 venv/
 *.egg-info/
 build/
@@ -18,6 +18,8 @@ data/*
 # Playwright / test artifacts
 test-results/
 
-# OS
+# OS & Tools
 Thumbs.db
 .DS_Store
+.claude/
+.omo/

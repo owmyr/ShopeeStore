@@ -22,16 +22,20 @@ from agents.trend_scout.prompts import (
 )
 from agents.trend_scout.scraper import ScrapedProduct
 from core import llm
+from core.config import get_settings
 
 log = logging.getLogger(__name__)
 
-BATCH_SIZE = 25  # hard rule: max titles per LLM call
+BATCH_SIZE = (
+    75 if get_settings().llm_provider == "gemini" else 25
+)  # hard rule: max titles per LLM call
 
 
 @dataclass
 class AnalyzedProduct:
     product: ScrapedProduct
     theme: str | None = None
+    velocity_metrics: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -41,6 +45,8 @@ class TrendReport:
     price_p50_cents: int = 0
     price_p75_cents: int = 0
     theme_counts: list[tuple[str, int]] = field(default_factory=list)  # sorted desc
+    theme_velocities: list[tuple[str, float]] = field(default_factory=list)
+    breakout_products: list[dict[str, Any]] = field(default_factory=list)
     printed_count: int = 0
     excluded_plain_count: int = 0
 
@@ -89,7 +95,9 @@ def cluster_titles(titles: list[str], *, client: Any | None = None) -> dict[int,
     for start in range(0, len(titles), BATCH_SIZE):
         batch = titles[start : start + BATCH_SIZE]
         try:
-            raw = llm.chat_json(CLUSTER_SYSTEM, cluster_user_prompt(batch), client=client)
+            raw = llm.chat_json(
+                CLUSTER_SYSTEM, cluster_user_prompt(batch), client=client, response_model=_BatchOut
+            )
             parsed = _BatchOut.model_validate(raw)
         except (llm.LLMOutputError, ValidationError) as exc:
             log.warning("clustering batch %d-%d failed: %s", start, start + len(batch), exc)
@@ -110,7 +118,12 @@ def normalize_themes(themes: list[str], *, client: Any | None = None) -> dict[st
     if len(unique) <= 3:
         return {t: t for t in unique}
     try:
-        raw = llm.chat_json(NORMALIZE_SYSTEM, normalize_user_prompt(unique), client=client)
+        raw = llm.chat_json(
+            NORMALIZE_SYSTEM,
+            normalize_user_prompt(unique),
+            client=client,
+            response_model=_NormalizeOut,
+        )
         parsed = _NormalizeOut.model_validate(raw)
     except (llm.LLMOutputError, ValidationError) as exc:
         log.warning("theme normalization failed, keeping originals: %s", exc)
@@ -122,7 +135,12 @@ def normalize_themes(themes: list[str], *, client: Any | None = None) -> dict[st
     return mapping
 
 
-def analyze(products: list[ScrapedProduct], *, client: Any | None = None) -> TrendReport:
+def analyze(
+    products: list[ScrapedProduct],
+    *,
+    client: Any | None = None,
+    velocity_map: dict[int, dict[str, Any]] | None = None,
+) -> TrendReport:
     """Full pipeline: dedupe -> drop plains -> rank -> price bands -> themes.
 
     Plain (printless) shirts are excluded from the report entirely - they are
@@ -147,15 +165,51 @@ def analyze(products: list[ScrapedProduct], *, client: Any | None = None) -> Tre
     canonical = normalize_themes(list(themes.values()), client=client) if themes else {}
 
     counts: dict[str, int] = {}
+    theme_vels: dict[str, float] = {}
     analyzed: list[AnalyzedProduct] = []
     for idx, product in enumerate(ranked):
         theme = themes.get(idx)
         if theme:
             theme = canonical.get(theme, theme)
-        analyzed.append(AnalyzedProduct(product=product, theme=theme))
+        vel = velocity_map.get(product.item_id, {}) if velocity_map else {}
+        analyzed.append(AnalyzedProduct(product=product, theme=theme, velocity_metrics=vel))
+
+        velocity_per_day = vel.get("velocity_per_day", 0.0)
+
         if theme and theme != NAO_ESTAMPADA:
             counts[theme] = counts.get(theme, 0) + 1
+            theme_vels[theme] = theme_vels.get(theme, 0.0) + velocity_per_day
 
     report.products = analyzed
     report.theme_counts = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+    report.theme_velocities = sorted(theme_vels.items(), key=lambda kv: (-kv[1], kv[0]))
+
+    breakouts = []
+    for ap in analyzed:
+        p = ap.product
+        vel = velocity_map.get(p.item_id, {}) if velocity_map else {}
+        if vel.get("is_breakout", False):
+            breakouts.append(
+                {
+                    "item_id": p.item_id,
+                    "shop_id": p.shop_id,
+                    "title": p.title,
+                    "url": p.url,
+                    "price_cents": p.price_cents,
+                    "sold_count": p.sold_count,
+                    "rating": p.rating,
+                    "theme": ap.theme,
+                    "image_url": p.image_url,
+                    "velocity_per_day": vel.get("velocity_per_day", 0.0),
+                    "delta_sold": vel.get("delta_sold", 0),
+                    "days_elapsed": vel.get("days_elapsed", 0.0),
+                    "is_breakout": True,
+                    "is_new": vel.get("is_new", False),
+                }
+            )
+
+    report.breakout_products = sorted(breakouts, key=lambda x: x["velocity_per_day"], reverse=True)[
+        :15
+    ]
+
     return report

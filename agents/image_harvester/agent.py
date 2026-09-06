@@ -17,8 +17,10 @@ import logging
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import httpx
 from sqlmodel import Session, select
 
+from agents.image_harvester import downloader
 from agents.image_harvester.downloader import download_image
 from agents.trend_scout.filter import is_plain, theme_slug
 from agents.trend_scout.prompts import NAO_ESTAMPADA
@@ -80,9 +82,13 @@ def run_once(
     inputs = {"report": report_dir.name, "max_images": max_images}
     if not force:
         last = ledger.last_successful_run(AGENT_NAME, inputs)
-        if last and last.started_at and (
-            datetime.now(UTC).replace(tzinfo=None) - last.started_at
-            < timedelta(hours=IDEMPOTENCY_HOURS)
+        if (
+            last
+            and last.started_at
+            and (
+                datetime.now(UTC).replace(tzinfo=None) - last.started_at
+                < timedelta(hours=IDEMPOTENCY_HOURS)
+            )
         ):
             log.info("skip: identical harvest succeeded recently")
             return Path(last.outputs_path) if last.outputs_path else None
@@ -90,7 +96,9 @@ def run_once(
     with ledger.run(AGENT_NAME, inputs) as handle:
         reference_dir = settings.data_dir / "reference"
         candidates = sorted(
-            payload.get("products", []), key=lambda p: p.get("sold_count", 0), reverse=True
+            payload.get("products", []),
+            key=lambda p: (p.get("velocity_per_day", 0.0), p.get("sold_count", 0)),
+            reverse=True,
         )
         items = [
             it
@@ -100,15 +108,18 @@ def run_once(
 
         downloaded = 0
         with db.session_scope() as s:
-            for item in items:
-                url = item.get("image_url") or _image_url_from_db(s, item["item_id"])
-                if not url:
-                    continue
-                slug = theme_slug(item.get("theme") or "")
-                dest = reference_dir / slug / f"{item['item_id']}.jpg"
-                if download_image(url, dest):
-                    downloaded += 1
-                    _record_image(s, item, dest, handle.run_id)
+            with httpx.Client(
+                headers=downloader.HEADERS, follow_redirects=True, timeout=30.0
+            ) as client:
+                for item in items:
+                    url = item.get("image_url") or _image_url_from_db(s, item["item_id"])
+                    if not url:
+                        continue
+                    slug = theme_slug(item.get("theme") or "")
+                    dest = reference_dir / slug / f"{item['item_id']}.jpg"
+                    if download_image(url, dest, client=client):
+                        downloaded += 1
+                        _record_image(s, item, dest, handle.run_id)
             s.commit()
 
         log.info("harvested %d/%d images -> %s", downloaded, len(items), reference_dir)

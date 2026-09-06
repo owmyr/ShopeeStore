@@ -1,30 +1,15 @@
 """Pulse agent tests (scraper faked)."""
 
 import json
-from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 
-import pytest
 from sqlmodel import select
 
 from agents.pulse import agent as pulse
 from agents.trend_scout import scraper
 from agents.trend_scout.scraper import ScrapedProduct
 from core import db
-from core.config import get_settings
 from core.models import AgentLedger, PriceSnapshot, Product
-
-
-@pytest.fixture()
-def isolated(tmp_path, monkeypatch) -> Iterator:
-    monkeypatch.setenv("DB_PATH", str(tmp_path / "t.db"))
-    monkeypatch.setenv("LEDGER_PATH", str(tmp_path / "ledger.jsonl"))
-    get_settings.cache_clear()
-    db.reset_engine()
-    db.init_db()
-    yield tmp_path
-    db.reset_engine()
-    get_settings.cache_clear()
 
 
 def _p(item_id: int, title: str, sold: int) -> ScrapedProduct:
@@ -34,33 +19,47 @@ def _p(item_id: int, title: str, sold: int) -> ScrapedProduct:
 class TestDetectSpikes:
     def test_new_product_is_spike(self) -> None:
         spikes = pulse.detect_spikes([_p(1, "nova", 100)], {})
-        assert spikes == [{"item_id": 1, "title": "nova", "kind": "new",
-                           "sold": 100, "jump": None}]
+        assert spikes == [{"item_id": 1, "title": "nova", "kind": "new", "sold": 100, "jump": None}]
 
     def test_big_jump_is_spike(self) -> None:
-        prev = {1: PriceSnapshot(product_id=1, captured_at=datetime.now(UTC),
-                                 price_cents=3000, sold_count=100, run_id="r")}
+        prev = {
+            1: PriceSnapshot(
+                product_id=1,
+                captured_at=datetime.now(UTC),
+                price_cents=3000,
+                sold_count=100,
+                run_id="r",
+            )
+        }
         spikes = pulse.detect_spikes([_p(1, "subiu", 700)], prev)
         assert spikes[0]["kind"] == "jump"
         assert spikes[0]["jump"] == 600
 
     def test_small_delta_not_spike(self) -> None:
-        prev = {1: PriceSnapshot(product_id=1, captured_at=datetime.now(UTC),
-                                 price_cents=3000, sold_count=100, run_id="r")}
+        prev = {
+            1: PriceSnapshot(
+                product_id=1,
+                captured_at=datetime.now(UTC),
+                price_cents=3000,
+                sold_count=100,
+                run_id="r",
+            )
+        }
         assert pulse.detect_spikes([_p(1, "estavel", 400)], prev) == []
 
 
 def _patch_scrape(monkeypatch, products: list[ScrapedProduct]) -> None:
-    monkeypatch.setattr(
-        scraper, "scrape_best_sellers", lambda *a, **k: products
-    )
+    monkeypatch.setattr(scraper, "scrape_best_sellers", lambda *a, **k: products)
 
 
 def test_plain_products_never_spike(isolated, monkeypatch) -> None:
-    _patch_scrape(monkeypatch, [
-        _p(1, "Camiseta Basica Lisa Algodao", 5000),
-        _p(2, "Camiseta Estampada Anime", 100),
-    ])
+    _patch_scrape(
+        monkeypatch,
+        [
+            _p(1, "Camiseta Basica Lisa Algodao", 5000),
+            _p(2, "Camiseta Estampada Anime", 100),
+        ],
+    )
     out = pulse.run_once()
     payload = json.loads(out.read_text(encoding="utf-8"))
     assert len(payload["spikes"]) == 1

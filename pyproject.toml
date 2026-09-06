@@ -35,6 +35,8 @@ packages = [
     "agents.trend_scout",
     "agents.image_harvester",
     "agents.pulse",
+    "agents.dossier",
+    "agents.lead_scout",
     "dashboard",
 ]
 

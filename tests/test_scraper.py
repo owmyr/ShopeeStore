@@ -67,9 +67,7 @@ class TestParseRating:
 class TestSearchUrl:
     def test_quotes_keyword(self) -> None:
         url = scraper.search_url("camiseta estampada")
-        assert url == (
-            "https://shopee.com.br/search?keyword=camiseta%20estampada&sortBy=sales"
-        )
+        assert url == ("https://shopee.com.br/search?keyword=camiseta%20estampada&sortBy=sales")
 
     def test_single_word(self) -> None:
         assert scraper.search_url("camiseta") == (
@@ -157,3 +155,58 @@ class TestParseCardText:
         text = "-48%\nCamiseta Basica\nR$\n25,00"
         title, _, _, _ = scraper.parse_card_text(text)
         assert title == "Camiseta Basica"
+
+
+class TestNetworkParsing:
+    def test_parse_network_items(self) -> None:
+        class MockResponse:
+            def __init__(self, url, data):
+                self.url = url
+                self._data = data
+
+            def json(self):
+                return self._data
+
+        # valid data
+        resp = MockResponse(
+            url="https://shopee.com.br/api/v4/search/search_items?keyword=camiseta",
+            data={
+                "items": [
+                    {
+                        "item_basic": {
+                            "itemid": 123,
+                            "shopid": 456,
+                            "name": "Camiseta Teste",
+                            "price": 2500000,
+                            "historical_sold": 100,
+                            "item_rating": {"rating_star": 4.5},
+                            "image": "img123",
+                        }
+                    }
+                ]
+            },
+        )
+
+        prods = scraper._parse_network_items(resp)
+        assert len(prods) == 1
+        assert prods[0].item_id == 123
+        assert prods[0].shop_id == 456
+        assert prods[0].title == "Camiseta Teste"
+        assert prods[0].price_cents == 25
+        assert prods[0].sold_count == 100
+        assert prods[0].rating == 4.5
+        assert prods[0].image_url == "https://down-br.img.susercontent.com/file/img123"
+        assert "camiseta-teste" in prods[0].url
+
+    def test_parse_network_items_ignores_other_urls(self) -> None:
+        class MockResponse:
+            def __init__(self, url, data):
+                self.url = url
+                self._data = data
+
+            def json(self):
+                return self._data
+
+        resp = MockResponse(url="https://shopee.com.br/api/v4/other", data={"items": []})
+        prods = scraper._parse_network_items(resp)
+        assert len(prods) == 0

@@ -3,6 +3,7 @@
 from collections.abc import Iterator
 from contextlib import contextmanager
 
+from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from sqlmodel import Session, SQLModel, create_engine
 
@@ -16,8 +17,21 @@ def get_engine() -> Engine:
     if _engine is None:
         settings = get_settings()
         settings.db_path.parent.mkdir(parents=True, exist_ok=True)
-        _engine = create_engine(f"sqlite:///{settings.db_path}", echo=False)
+        _engine = create_engine(
+            f"sqlite:///{settings.db_path}",
+            echo=False,
+            connect_args={"check_same_thread": False},
+        )
     return _engine
+
+
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode = WAL;")
+    cursor.execute("PRAGMA busy_timeout = 5000;")
+    cursor.execute("PRAGMA foreign_keys = ON;")
+    cursor.close()
 
 
 def reset_engine() -> None:
@@ -36,5 +50,11 @@ def init_db() -> None:
 
 @contextmanager
 def session_scope() -> Iterator[Session]:
-    with Session(get_engine()) as session:
+    session = Session(get_engine())
+    try:
         yield session
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()

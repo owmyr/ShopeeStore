@@ -2,9 +2,12 @@
 
 import json
 
+import pytest
+
 from agents.trend_scout import analyzer
 from agents.trend_scout.prompts import NAO_ESTAMPADA
 from agents.trend_scout.scraper import ScrapedProduct
+from tests.conftest import FakeLLM
 
 
 def _product(item_id: int, title: str, price: int = 5000, sold: int = 100) -> ScrapedProduct:
@@ -17,18 +20,6 @@ def _product(item_id: int, title: str, price: int = 5000, sold: int = 100) -> Sc
         sold_count=sold,
         rating=None,
     )
-
-
-class FakeLLM:
-    """Returns canned cluster JSON per call; records user prompts."""
-
-    def __init__(self, responses: list) -> None:
-        self.responses = list(responses)
-        self.user_prompts: list[str] = []
-
-    def chat(self, model, messages, **kwargs):
-        self.user_prompts.append(messages[1]["content"])
-        return {"message": {"content": self.responses.pop(0)}}
 
 
 class TestPercentile:
@@ -57,6 +48,9 @@ class TestDedupe:
 
 class TestClusterTitles:
     def test_batches_of_25(self) -> None:
+        import agents.trend_scout.analyzer
+
+        agents.trend_scout.analyzer.BATCH_SIZE = 25
         titles = [f"camiseta tema {i}" for i in range(26)]
         # batch 1: 25 titles -> indices 1..25; batch 2: 1 title -> index 1
         responses = [
@@ -85,14 +79,20 @@ class TestClusterTitles:
 
 class TestNormalizeThemes:
     def test_merges_synonyms(self) -> None:
-        client = FakeLLM([
-            json.dumps({"mapping": [
-                {"original": "academia", "canonical": "academia/fitness"},
-                {"original": "academia/fitness", "canonical": "academia/fitness"},
-                {"original": "basica", "canonical": "basica/lisa"},
-                {"original": "basica/lisa", "canonical": "basica/lisa"},
-            ]})
-        ])
+        client = FakeLLM(
+            [
+                json.dumps(
+                    {
+                        "mapping": [
+                            {"original": "academia", "canonical": "academia/fitness"},
+                            {"original": "academia/fitness", "canonical": "academia/fitness"},
+                            {"original": "basica", "canonical": "basica/lisa"},
+                            {"original": "basica/lisa", "canonical": "basica/lisa"},
+                        ]
+                    }
+                )
+            ]
+        )
         mapping = analyzer.normalize_themes(
             ["basica", "basica/lisa", "academia", "academia/fitness"], client=client
         )
@@ -132,12 +132,18 @@ class TestPrintExclusion:
             _product(2, "Camiseta Premium Conforto", sold=50),  # no regex hint
         ]
         # LLM tags product 2 (index 2 after ranking: sold desc -> [1,2]) as nao-estampada
-        client = FakeLLM([
-            json.dumps({"clusters": [
-                {"theme": "streetwear", "indices": [1], "why": "x"},
-                {"theme": NAO_ESTAMPADA, "indices": [2], "why": "sem estampa"},
-            ]})
-        ])
+        client = FakeLLM(
+            [
+                json.dumps(
+                    {
+                        "clusters": [
+                            {"theme": "streetwear", "indices": [1], "why": "x"},
+                            {"theme": NAO_ESTAMPADA, "indices": [2], "why": "sem estampa"},
+                        ]
+                    }
+                )
+            ]
+        )
         report = analyzer.analyze(products, client=client)
 
         assert report.theme_counts == [("streetwear", 1)]
@@ -154,12 +160,18 @@ class TestAnalyze:
         ]
         # NOTE: titles reach the LLM in RANKED order [item3, item1, item2],
         # so LLM 1-based indices map: 1->item3, 2->item1, 3->item2
-        client = FakeLLM([
-            json.dumps({"clusters": [
-                {"theme": "pets", "indices": [2], "why": "gato"},
-                {"theme": "evangelicas", "indices": [3], "why": "leao"},
-            ]})
-        ])
+        client = FakeLLM(
+            [
+                json.dumps(
+                    {
+                        "clusters": [
+                            {"theme": "pets", "indices": [2], "why": "gato"},
+                            {"theme": "evangelicas", "indices": [3], "why": "leao"},
+                        ]
+                    }
+                )
+            ]
+        )
         report = analyzer.analyze(products, client=client)
 
         # ranked by sold_count desc
@@ -170,3 +182,12 @@ class TestAnalyze:
         # price bands over [2000, 3000, 4000]
         assert report.price_p50_cents == 3000
         assert report.theme_counts == [("evangelicas", 1), ("pets", 1)]
+
+
+@pytest.fixture(autouse=True)
+def force_ollama_for_tests(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    from core.config import get_settings
+    get_settings.cache_clear()
+    import agents.trend_scout.analyzer
+    agents.trend_scout.analyzer.BATCH_SIZE = 25

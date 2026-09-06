@@ -1,7 +1,6 @@
 """Image Harvester tests (HTTP + LLM faked)."""
 
 import json
-from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -12,20 +11,7 @@ from sqlmodel import select
 from agents.image_harvester import agent as harvester
 from agents.image_harvester.downloader import download_image
 from core import db
-from core.config import get_settings
 from core.models import AgentLedger, Product, ProductImage
-
-
-@pytest.fixture()
-def isolated(tmp_path, monkeypatch) -> Iterator:
-    monkeypatch.setenv("DB_PATH", str(tmp_path / "t.db"))
-    monkeypatch.setenv("LEDGER_PATH", str(tmp_path / "ledger.jsonl"))
-    get_settings.cache_clear()
-    db.reset_engine()
-    db.init_db()
-    yield tmp_path
-    db.reset_engine()
-    get_settings.cache_clear()
 
 
 class TestDownloadImage:
@@ -72,27 +58,65 @@ def _seed(tmp_path: Path, monkeypatch) -> None:
     """Product rows in DB + a report.json on disk."""
     now = datetime.now(UTC).replace(tzinfo=None)
     with db.session_scope() as s:
-        s.add(Product(item_id=1, shop_id=10, title="camiseta meme", url="u1",
-                      image_url="https://cdn/1.jpg", first_seen_at=now, last_seen_at=now))
-        s.add(Product(item_id=2, shop_id=10, title="camiseta caveira premium", url="u2",
-                      image_url="https://cdn/2.jpg", first_seen_at=now, last_seen_at=now))
+        s.add(
+            Product(
+                item_id=1,
+                shop_id=10,
+                title="camiseta meme",
+                url="u1",
+                image_url="https://cdn/1.jpg",
+                first_seen_at=now,
+                last_seen_at=now,
+            )
+        )
+        s.add(
+            Product(
+                item_id=2,
+                shop_id=10,
+                title="camiseta caveira premium",
+                url="u2",
+                image_url="https://cdn/2.jpg",
+                first_seen_at=now,
+                last_seen_at=now,
+            )
+        )
         s.commit()
 
     report_dir = tmp_path / "reports" / "20260727T000000Z"
     report_dir.mkdir(parents=True)
     (report_dir / "report.json").write_text(
-        json.dumps({
-            "generated_at": "20260727T000000Z",
-            "product_count": 2,
-            "price_p25_cents": 0, "price_p50_cents": 0, "price_p75_cents": 0,
-            "theme_counts": [["memes", 1]],
-            "products": [
-                {"item_id": 1, "shop_id": 10, "title": "camiseta meme", "url": "u1",
-                 "price_cents": 3000, "sold_count": 500, "rating": 4.8, "theme": "memes"},
-                {"item_id": 2, "shop_id": 10, "title": "camiseta caveira premium", "url": "u2",
-                 "price_cents": 2000, "sold_count": 900, "rating": None, "theme": None},
-            ],
-        }),
+        json.dumps(
+            {
+                "generated_at": "20260727T000000Z",
+                "product_count": 2,
+                "price_p25_cents": 0,
+                "price_p50_cents": 0,
+                "price_p75_cents": 0,
+                "theme_counts": [["memes", 1]],
+                "products": [
+                    {
+                        "item_id": 1,
+                        "shop_id": 10,
+                        "title": "camiseta meme",
+                        "url": "u1",
+                        "price_cents": 3000,
+                        "sold_count": 500,
+                        "rating": 4.8,
+                        "theme": "memes",
+                    },
+                    {
+                        "item_id": 2,
+                        "shop_id": 10,
+                        "title": "camiseta caveira premium",
+                        "url": "u2",
+                        "price_cents": 2000,
+                        "sold_count": 900,
+                        "rating": None,
+                        "theme": None,
+                    },
+                ],
+            }
+        ),
         encoding="utf-8",
     )
 
@@ -127,31 +151,86 @@ def test_run_once_downloads_and_records(isolated, monkeypatch) -> None:
 def test_run_once_skips_plain_and_nao_estampada(isolated, monkeypatch) -> None:
     now = datetime.now(UTC).replace(tzinfo=None)
     with db.session_scope() as s:
-        s.add(Product(item_id=1, shop_id=10, title="Camiseta Basica Lisa", url="u1",
-                      image_url="https://cdn/1.jpg", first_seen_at=now, last_seen_at=now))
-        s.add(Product(item_id=2, shop_id=10, title="Camiseta Premium Conforto", url="u2",
-                      image_url="https://cdn/2.jpg", first_seen_at=now, last_seen_at=now))
-        s.add(Product(item_id=3, shop_id=10, title="Camiseta Caveira Tribal", url="u3",
-                      image_url="https://cdn/3.jpg", first_seen_at=now, last_seen_at=now))
+        s.add(
+            Product(
+                item_id=1,
+                shop_id=10,
+                title="Camiseta Basica Lisa",
+                url="u1",
+                image_url="https://cdn/1.jpg",
+                first_seen_at=now,
+                last_seen_at=now,
+            )
+        )
+        s.add(
+            Product(
+                item_id=2,
+                shop_id=10,
+                title="Camiseta Premium Conforto",
+                url="u2",
+                image_url="https://cdn/2.jpg",
+                first_seen_at=now,
+                last_seen_at=now,
+            )
+        )
+        s.add(
+            Product(
+                item_id=3,
+                shop_id=10,
+                title="Camiseta Caveira Tribal",
+                url="u3",
+                image_url="https://cdn/3.jpg",
+                first_seen_at=now,
+                last_seen_at=now,
+            )
+        )
         s.commit()
 
     report_dir = isolated / "reports" / "20260727T000000Z"
     report_dir.mkdir(parents=True)
     (report_dir / "report.json").write_text(
-        json.dumps({
-            "generated_at": "20260727T000000Z",
-            "product_count": 3,
-            "price_p25_cents": 0, "price_p50_cents": 0, "price_p75_cents": 0,
-            "theme_counts": [],
-            "products": [
-                {"item_id": 1, "shop_id": 10, "title": "Camiseta Basica Lisa", "url": "u1",
-                 "price_cents": 3000, "sold_count": 900, "rating": None, "theme": None},
-                {"item_id": 2, "shop_id": 10, "title": "Camiseta Premium Conforto", "url": "u2",
-                 "price_cents": 3000, "sold_count": 500, "rating": None, "theme": "nao-estampada"},
-                {"item_id": 3, "shop_id": 10, "title": "Camiseta Caveira Tribal", "url": "u3",
-                 "price_cents": 3000, "sold_count": 100, "rating": None, "theme": "caveira"},
-            ],
-        }),
+        json.dumps(
+            {
+                "generated_at": "20260727T000000Z",
+                "product_count": 3,
+                "price_p25_cents": 0,
+                "price_p50_cents": 0,
+                "price_p75_cents": 0,
+                "theme_counts": [],
+                "products": [
+                    {
+                        "item_id": 1,
+                        "shop_id": 10,
+                        "title": "Camiseta Basica Lisa",
+                        "url": "u1",
+                        "price_cents": 3000,
+                        "sold_count": 900,
+                        "rating": None,
+                        "theme": None,
+                    },
+                    {
+                        "item_id": 2,
+                        "shop_id": 10,
+                        "title": "Camiseta Premium Conforto",
+                        "url": "u2",
+                        "price_cents": 3000,
+                        "sold_count": 500,
+                        "rating": None,
+                        "theme": "nao-estampada",
+                    },
+                    {
+                        "item_id": 3,
+                        "shop_id": 10,
+                        "title": "Camiseta Caveira Tribal",
+                        "url": "u3",
+                        "price_cents": 3000,
+                        "sold_count": 100,
+                        "rating": None,
+                        "theme": "caveira",
+                    },
+                ],
+            }
+        ),
         encoding="utf-8",
     )
 
@@ -174,3 +253,16 @@ def test_run_once_skips_plain_and_nao_estampada(isolated, monkeypatch) -> None:
 def test_run_once_requires_report(isolated) -> None:
     with pytest.raises(RuntimeError, match="trend_scout"):
         harvester.run_once()
+
+
+def test_clean_shopee_image_url() -> None:
+    """Verify URL cleaning strips params, fragments, resize, and thumbnail suffixes."""
+    from agents.image_harvester.downloader import clean_shopee_image_url
+
+    assert clean_shopee_image_url("https://cdn/1.jpg_tn") == "https://cdn/1.jpg"
+    assert clean_shopee_image_url("https://cdn/1_tn.jpg") == "https://cdn/1.jpg"
+    assert clean_shopee_image_url("https://cdn/1.jpg@resize_w400") == "https://cdn/1.jpg"
+    assert clean_shopee_image_url("https://cdn/1.jpg?query=123") == "https://cdn/1.jpg"
+    assert clean_shopee_image_url("https://cdn/1.jpg#hash") == "https://cdn/1.jpg"
+    assert clean_shopee_image_url("https://cdn/1_tn.jpg@resize_w400?q=1#h") == "https://cdn/1.jpg"
+    assert clean_shopee_image_url("https://cdn/1.jpg") == "https://cdn/1.jpg"

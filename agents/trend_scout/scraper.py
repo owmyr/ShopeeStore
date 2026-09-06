@@ -25,7 +25,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import quote
 
-from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
+from playwright.sync_api import Browser, BrowserContext, Page, Response, sync_playwright
 
 from core.config import get_settings
 
@@ -37,6 +37,8 @@ ITEM_HREF_RE = re.compile(r"-i\.(\d+)\.(\d+)")
 def search_url(keyword: str) -> str:
     """Shopee BR search URL sorted by sales for a keyword."""
     return f"https://shopee.com.br/search?keyword={quote(keyword)}&sortBy=sales"
+
+
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
@@ -78,10 +80,10 @@ _DISCOUNT_RE = re.compile(r"^-?\s*\d+\s*%(\s*OFF)?$", re.IGNORECASE)
 
 
 def parse_price_cents(text: str) -> int | None:
-    """'R$ 1.234,56' -> 123456. pt-BR: dot=thousands, comma=decimal.
+    r"""'R$ 1.234,56' -> 123456. pt-BR: dot=thousands, comma=decimal.
 
     Handles Shopee's split layout where 'R$' and the number are on
-    separate lines (\\s matches the newline)."""
+    separate lines (\s matches the newline)."""
     m = _PRICE_RE.search(text) or _BARE_PRICE_RE.search(text)
     if not m:
         return None
@@ -152,6 +154,7 @@ def parse_card_text(text: str) -> tuple[str, int | None, int | None, float | Non
 # ---------------------------------------------------------------------------
 # Auth (one-time manual login, persisted session)
 # ---------------------------------------------------------------------------
+
 
 def _new_context(
     pw, *, headless: bool, with_auth: bool, real_chrome: bool = False
@@ -266,6 +269,7 @@ def login(timeout_sec: int = 600) -> Path:
 # Browser scraping
 # ---------------------------------------------------------------------------
 
+
 def _extract_products(page: Page, seen: dict[int, ScrapedProduct]) -> None:
     for anchor in page.evaluate(_ANCHOR_DUMP_JS):
         parsed = parse_item_href(anchor["href"])
@@ -287,6 +291,69 @@ def _extract_products(page: Page, seen: dict[int, ScrapedProduct]) -> None:
             rating=rating,
             image_url=anchor["img"],
         )
+
+
+def _parse_network_items(response: Response) -> list[ScrapedProduct]:
+    """Parse intercepted Shopee API JSON into ScrapedProduct."""
+    if not ("/api/v4/search/search_items" in response.url or "/api/v4/recommend/" in response.url):
+        return []
+
+    try:
+        data = response.json()
+    except Exception:
+        return []
+
+    items = data.get("items") or data.get("data", {}).get("sections", [{}])[0].get("data", {}).get(
+        "item", []
+    )
+    if not items:
+        return []
+
+    products = []
+    for item in items:
+        try:
+            item_basic = item.get("item_basic") or item
+            if not item_basic:
+                continue
+
+            itemid = int(item_basic.get("itemid", 0))
+            shopid = int(item_basic.get("shopid", 0))
+            if not itemid or not shopid:
+                continue
+
+            name = item_basic.get("name", "")
+            price = item_basic.get("price")
+            if price is None:
+                continue
+            price_cents = price // 100000
+
+            sold_count = item_basic.get("historical_sold", 0)
+            rating = item_basic.get("item_rating", {}).get("rating_star")
+
+            img_id = item_basic.get("image", "")
+            image_url = f"https://down-br.img.susercontent.com/file/{img_id}" if img_id else ""
+
+            # create url from name
+            safe_name = re.sub(r"[^a-zA-Z0-9-]", "-", name.lower())
+            url = f"https://shopee.com.br/{safe_name}-i.{shopid}.{itemid}"
+
+            products.append(
+                ScrapedProduct(
+                    item_id=itemid,
+                    shop_id=shopid,
+                    title=name,
+                    url=url,
+                    price_cents=price_cents,
+                    sold_count=sold_count,
+                    rating=rating,
+                    image_url=image_url,
+                )
+            )
+        except Exception as e:
+            log.warning("Error parsing network item: %s", e)
+            continue
+
+    return products
 
 
 def page_url(url: str, page_num: int) -> str:
@@ -319,66 +386,106 @@ def scrape_best_sellers(
             "run `python -m agents.trend_scout.scraper --login` first"
         )
     target = 5 if dry_run else (max_products or settings.scrape_max_products)
-    url = category_url or settings.scrape_category_url or search_url(settings.scrape_keyword)
+
+    keywords = settings.scrape_keywords if not category_url else []
+    urls_to_scrape = [category_url] if category_url else [search_url(kw) for kw in keywords]
+
     shots = screenshot_dir or settings.data_dir
+
+    seen: dict[int, ScrapedProduct] = {}
 
     with sync_playwright() as pw:
         browser, context = _new_context(pw, headless=settings.scrape_headless, with_auth=True)
         try:
             page = context.new_page()
-            try:
-                seen: dict[int, ScrapedProduct] = {}
-                stagnant_pages = 0
-                page_num = 0
-                new_since_pause = 0
+            page.add_init_script(
+                "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"
+            )
 
+            network_items_captured = 0
+
+            def _handle_response(response: Response):
+                nonlocal network_items_captured
+                try:
+                    prods = _parse_network_items(response)
+                    for p in prods:
+                        if p.item_id not in seen:
+                            seen[p.item_id] = p
+                            network_items_captured += 1
+                except Exception:
+                    pass
+
+            page.on("response", _handle_response)
+
+            try:
                 # warmup: enter via the home page (more human than cold search nav)
                 page.goto("https://shopee.com.br/", wait_until="domcontentloaded", timeout=60000)
                 page.wait_for_timeout(random.randint(2500, 4500))
 
-                while len(seen) < target and stagnant_pages < 2 and page_num < MAX_PAGES:
-                    page.goto(page_url(url, page_num), wait_until="domcontentloaded", timeout=60000)
-                    page.wait_for_timeout(random.randint(3000, 5000))
-                    if page_num == 0:
-                        _dismiss_overlays(page)
-                    if _is_auth_wall(page.url):
-                        raise ShopeeAuthError(
-                            f"session expired or rejected (landed on {page.url}) - "
-                            "re-run `python -m agents.trend_scout.scraper --login`"
-                        )
-                    if _is_captcha_wall(page.url):
-                        raise ShopeeAuthError(
-                            f"anti-bot captcha challenge at page {page_num} ({page.url}) - "
-                            "re-run `python -m agents.trend_scout.scraper --login` "
-                            "and solve the puzzle in the browser"
-                        )
+                for url in urls_to_scrape:
+                    if len(seen) >= target:
+                        break
 
-                    before = len(seen)
-                    stagnant_scrolls = 0
-                    while len(seen) < target and stagnant_scrolls < 3:
-                        _extract_products(page, seen)
-                        prev = len(seen)
-                        page.mouse.wheel(0, random.randint(2000, 3000))
-                        page.wait_for_timeout(random.randint(1200, 2200))
-                        stagnant_scrolls = stagnant_scrolls + 1 if len(seen) == prev else 0
+                    stagnant_pages = 0
+                    page_num = 0
+                    new_since_pause = 0
 
-                        new_since_pause += max(0, len(seen) - prev)
-                        if new_since_pause >= 25:
-                            time.sleep(random.uniform(8, 12))  # politeness pause
-                            new_since_pause = 0
-                        else:
-                            time.sleep(
-                                random.uniform(
-                                    settings.scrape_delay_min_sec,
-                                    settings.scrape_delay_max_sec,
-                                )
+                    while len(seen) < target and stagnant_pages < 2 and page_num < MAX_PAGES:
+                        page.goto(
+                            page_url(url, page_num), wait_until="domcontentloaded", timeout=60000
+                        )
+                        page.wait_for_timeout(random.randint(3000, 5000))
+                        if page_num == 0:
+                            _dismiss_overlays(page)
+                        if _is_auth_wall(page.url):
+                            raise ShopeeAuthError(
+                                f"session expired or rejected (landed on {page.url}) - "
+                                "re-run `python -m agents.trend_scout.scraper --login`"
                             )
-                    stagnant_pages = stagnant_pages + 1 if len(seen) == before else 0
-                    log.info(
-                        "scrape page %d done: %d/%d products", page_num, len(seen), target
-                    )
-                    page_num += 1
-                return list(seen.values())[:target]
+                        if _is_captcha_wall(page.url):
+                            raise ShopeeAuthError(
+                                f"anti-bot captcha challenge at page {page_num} ({page.url}) - "
+                                "re-run `python -m agents.trend_scout.scraper --login` "
+                                "and solve the puzzle in the browser"
+                            )
+
+                        before = len(seen)
+                        stagnant_scrolls = 0
+                        network_items_before = network_items_captured
+
+                        while len(seen) < target and stagnant_scrolls < 3:
+                            prev = len(seen)
+
+                            # Humanized scrolling jitter
+                            scroll_amount = random.randint(1800, 3200)
+                            scroll_steps = random.randint(3, 7)
+                            for _ in range(scroll_steps):
+                                page.mouse.wheel(0, scroll_amount // scroll_steps)
+                                page.wait_for_timeout(random.randint(100, 300))
+
+                            page.wait_for_timeout(random.randint(1200, 2500))
+
+                            stagnant_scrolls = stagnant_scrolls + 1 if len(seen) == prev else 0
+                            new_since_pause += max(0, len(seen) - prev)
+                            if new_since_pause >= 25:
+                                time.sleep(random.uniform(8, 12))  # politeness pause
+                                new_since_pause = 0
+                            else:
+                                time.sleep(
+                                    random.uniform(
+                                        settings.scrape_delay_min_sec,
+                                        settings.scrape_delay_max_sec,
+                                    )
+                                )
+
+                        # Seamless DOM fallback
+                        if network_items_captured == network_items_before:
+                            _extract_products(page, seen)
+
+                        stagnant_pages = stagnant_pages + 1 if len(seen) == before else 0
+                        log.info("scrape page %d done: %d products total", page_num, len(seen))
+                        page_num += 1
+
             except Exception:
                 shots.mkdir(parents=True, exist_ok=True)
                 ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
@@ -388,6 +495,8 @@ def scrape_best_sellers(
                     raise
         finally:
             browser.close()
+
+    return list(seen.values())[:target]
 
 
 def main() -> int:
