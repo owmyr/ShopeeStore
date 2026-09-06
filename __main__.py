@@ -15,8 +15,14 @@ from core.config import PROJECT_ROOT
 def main() -> int:
     parser = argparse.ArgumentParser(prog="shopee-store")
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("run", help="run Trend Scout once (skips if run recently)")
-    sub.add_parser("run-now", help="force Trend Scout run now")
+    run_parser = sub.add_parser("run", help="run Trend Scout once (skips if run recently)")
+    run_parser.add_argument("--dry-run", action="store_true", help="scrape only 5 products")
+    run_parser.add_argument("--max", type=int, default=None, help="max products")
+
+    run_now_parser = sub.add_parser("run-now", help="force Trend Scout run now")
+    run_now_parser.add_argument("--dry-run", action="store_true", help="scrape only 5 products")
+    run_now_parser.add_argument("--max", type=int, default=None, help="max products")
+
     sub.add_parser("dashboard", help="launch Streamlit supervision UI")
     sub.add_parser("schedule", help="start weekly scheduler (blocking)")
     sub.add_parser("login", help="one-time Shopee login (opens browser)")
@@ -37,7 +43,7 @@ def main() -> int:
         logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
         from agents.trend_scout.agent import run_once
 
-        out = run_once(force=args.command == "run-now")
+        out = run_once(force=args.command == "run-now", dry_run=args.dry_run, max_products=args.max)
         print(f"report: {out}")
         return 0
 
