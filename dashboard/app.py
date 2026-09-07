@@ -226,7 +226,7 @@ with tab_crm:
         c1, c2, c3, c4, c5 = st.columns(5)
         c1.metric("Total Leads", len(leads))
         c2.metric(
-            "Amostra Enviada",
+            "Dossiê Enviado",
             len([ld for ld in leads if ld.status in ("sample_sent", "contacted")]),
         )
         c3.metric(
@@ -369,7 +369,7 @@ with tab_crm:
                     if card_path and card_path.exists():
                         with open(card_path, "rb") as f:
                             st.download_button(
-                                label="📥 Baixar Card Amostra (PNG)",
+                                label="📥 Baixar Card do Nicho (PNG)",
                                 data=f.read(),
                                 file_name=f"card_{lead.top_theme}.png",
                                 mime="image/png",

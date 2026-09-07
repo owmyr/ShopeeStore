@@ -180,7 +180,7 @@ def test_generate_theme_card_basic(mock_playwright, tmp_path: Path):
 
     html_content = (tmp_path / "cards" / "streetwear.html").read_text(encoding="utf-8")
     assert "RADAR SEMANAL DE VENDAS • CAMISETAS SHOPEE BR" in html_content
-    assert "AMOSTRA CORTESIA" in html_content
+    assert "EDIÇÃO SEMANAL" in html_content
     assert "Nicho: Streetwear" in html_content
     assert "Alta Procura • Pouca Concorrência" in html_content
     assert "badge-emerald" in html_content
@@ -188,7 +188,7 @@ def test_generate_theme_card_basic(mock_playwright, tmp_path: Path):
     assert "Camiseta Streetwear Oversized 1" in html_content
     assert "+25.5 peças/dia" in html_content
     assert "R$ 49,90" in html_content
-    assert "Amostra cortesia para lojistas de confecção" in html_content
+    assert "Relatório semanal de inteligência em estamparia" in html_content
 
     mock_p.chromium.launch.assert_called_once_with(headless=True, channel="chrome")
     mock_page.screenshot.assert_called_once_with(path=str(png_path), type="png")

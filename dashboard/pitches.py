@@ -17,13 +17,14 @@ def generate_shopee_chat_pitch(lead: StoreLead, opportunity_label: str | None = 
 
     return (
         f"Olá, equipe da {lead.shop_name}! Tudo bem?\n\n"
-        "Monitoramos semanalmente o mercado de camisetas e estamparia da Shopee BR. "
-        "Acabei de anexar aqui o nosso Dossiê Semanal de Tendências desta semana como cortesia "
-        f"para vocês avaliarem os nichos e as estampas mais aceleradas{theme_mention}.\n\n"
-        "Trabalhamos com uma assinatura mensal para enviar esse relatório atualizado toda "
-        "segunda-feira diretamente para confecções e lojistas parceiros.\n\n"
-        "Se quiser receber as próximas edições para direcionar o planejamento da loja, "
-        "me dá um toque por aqui que te passo os detalhes da assinatura mensal. Boas vendas!"
+        "Toda semana monitoramos as vendas da categoria de camisetas e estamparia na Shopee BR.\n\n"
+        "Anexei aqui a edição desta semana do nosso Dossiê Semanal de Tendências para vocês "
+        "conhecerem o levantamento e avaliarem os nichos e estampas que mais estão "
+        f"acelerando no mercado{theme_mention}.\n\n"
+        "Nosso serviço funciona por assinatura mensal para entregar esse relatório completo e "
+        "atualizado toda segunda-feira diretamente para confecções e lojistas parceiros.\n\n"
+        "Se fizer sentido para o planejamento de produção da loja de vocês, me dá um toque por "
+        "aqui que te passo os detalhes da assinatura mensal. Boas vendas!"
     )
 
 
