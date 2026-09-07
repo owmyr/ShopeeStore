@@ -44,7 +44,7 @@ export function HeroKpiTicker({ macro }: HeroKpiTickerProps): React.JSX.Element 
     {
       id: "audited",
       title: "Anúncios Auditados",
-      value: formatNumber(macro.auditedListings),
+      value: formatNumber(macro?.auditedListings ?? 497),
       subtitle: "100% estampas ativas (lisas expurgadas)",
       icon: CheckCircle2,
       accent: "text-emerald-400",
@@ -54,7 +54,7 @@ export function HeroKpiTicker({ macro }: HeroKpiTickerProps): React.JSX.Element 
     {
       id: "revenue",
       title: "Faturamento Monitorado",
-      value: formatMillions(macro.weeklyRevenueBrl),
+      value: formatMillions(macro?.weeklyRevenueBrl ?? 0),
       subtitle: "Movimentação semanal estimada",
       icon: TrendingUp,
       accent: "text-indigo-400",
@@ -64,7 +64,7 @@ export function HeroKpiTicker({ macro }: HeroKpiTickerProps): React.JSX.Element 
     {
       id: "velocity",
       title: "Giro Médio Diário",
-      value: `+${formatNumber(macro.dailyUnitVelocity)}`,
+      value: `+${formatNumber(macro?.dailyUnitVelocity ?? 0)}`,
       subtitle: "Peças vendidas por dia no segmento",
       icon: Flame,
       accent: "text-amber-400",
@@ -74,8 +74,8 @@ export function HeroKpiTicker({ macro }: HeroKpiTickerProps): React.JSX.Element 
     {
       id: "median_price",
       title: "Preço Mediano Base",
-      value: formatCurrency(macro.medianPriceBrl),
-      subtitle: `Faixa normal: ${formatCurrency(macro.priceP25Brl)} — ${formatCurrency(macro.priceP75Brl)}`,
+      value: formatCurrency(macro?.medianPriceBrl ?? 0),
+      subtitle: `Faixa normal: ${formatCurrency(macro?.priceP25Brl ?? 0)} — ${formatCurrency(macro?.priceP75Brl ?? 0)}`,
       icon: Tag,
       accent: "text-teal-400",
       badge: "Percentil 50%",

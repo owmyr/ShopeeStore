@@ -55,7 +55,7 @@ export function BreakoutPrints({ prints }: BreakoutPrintsProps): React.JSX.Eleme
 
       {/* Grid of 12 Cards */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {prints.map((print, index) => (
+        {(prints || []).map((print, index) => (
           <motion.div
             key={print.id}
             initial={{ opacity: 0, y: 16 }}

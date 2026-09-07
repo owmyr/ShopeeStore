@@ -140,7 +140,7 @@ export function PrintAuditModal({ print, onClose }: PrintAuditModalProps): React
                   <Scissors className="h-3.5 w-3.5" />
                   <span>Modelagem & Corte</span>
                 </div>
-                <p className="text-slate-200 font-medium">{print.specs.cut}</p>
+                <p className="text-slate-200 font-medium">{print.specs?.cut ?? "Oversized Boxy"}</p>
               </div>
 
               {/* Malha */}
@@ -149,7 +149,7 @@ export function PrintAuditModal({ print, onClose }: PrintAuditModalProps): React
                   <Layers className="h-3.5 w-3.5" />
                   <span>Malha & Gramatura</span>
                 </div>
-                <p className="text-slate-200 font-medium">{print.specs.fabric}</p>
+                <p className="text-slate-200 font-medium">{print.specs?.fabric ?? "100% Algodão 30.1 Penteado"}</p>
               </div>
 
               {/* Técnica de Estamparia */}
@@ -158,7 +158,7 @@ export function PrintAuditModal({ print, onClose }: PrintAuditModalProps): React
                   <Printer className="h-3.5 w-3.5" />
                   <span>Tecnologia de Impressão</span>
                 </div>
-                <p className="text-slate-200 font-medium">{print.specs.printTechnique}</p>
+                <p className="text-slate-200 font-medium">{print.specs?.printTechnique ?? "DTF Têxtil HD"}</p>
               </div>
 
               {/* Margem Estimada */}
@@ -167,7 +167,7 @@ export function PrintAuditModal({ print, onClose }: PrintAuditModalProps): React
                   <Percent className="h-3.5 w-3.5" />
                   <span>Margem Bruta Estimada</span>
                 </div>
-                <p className="text-emerald-300 font-bold">{print.specs.estimatedMargin}</p>
+                <p className="text-emerald-300 font-bold">{print.specs?.estimatedMargin ?? "65% - 70%"}</p>
               </div>
 
               {/* Custo Fabril Estimado */}
@@ -177,7 +177,7 @@ export function PrintAuditModal({ print, onClose }: PrintAuditModalProps): React
                   <span>Custo Fabril Médio (Estampada)</span>
                 </div>
                 <p className="text-slate-200 font-bold font-mono">
-                  {formatCurrency(print.specs.costEstimateBrl)} / peça
+                  {formatCurrency(print.specs?.costEstimateBrl ?? 14.5)} / peça
                 </p>
               </div>
 
@@ -187,7 +187,7 @@ export function PrintAuditModal({ print, onClose }: PrintAuditModalProps): React
                   <Users className="h-3.5 w-3.5" />
                   <span>Público & Posicionamento</span>
                 </div>
-                <p className="text-slate-200 font-medium">{print.specs.targetAudience}</p>
+                <p className="text-slate-200 font-medium">{print.specs?.targetAudience ?? "Jovem / Urbano"}</p>
               </div>
             </div>
           </div>

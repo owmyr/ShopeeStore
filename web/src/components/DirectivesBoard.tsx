@@ -60,7 +60,7 @@ export function DirectivesBoard({ directives }: DirectivesBoardProps): React.JSX
           </div>
 
           <div className="mt-5 space-y-4">
-            {directives.whatToPrint.map((item, idx) => (
+            {(directives?.whatToPrint || []).map((item, idx) => (
               <motion.div
                 key={item.niche}
                 initial={{ opacity: 0, x: -12 }}
@@ -83,7 +83,7 @@ export function DirectivesBoard({ directives }: DirectivesBoardProps): React.JSX
 
                 {/* Sub-themes pills */}
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  {item.recommendedThemes.map((theme) => (
+                  {(item.recommendedThemes || []).map((theme) => (
                     <span
                       key={theme}
                       className="rounded-md bg-white/[0.05] border border-white/[0.08] px-2 py-0.5 text-[11px] text-slate-300"
@@ -119,7 +119,7 @@ export function DirectivesBoard({ directives }: DirectivesBoardProps): React.JSX
           </div>
 
           <div className="mt-5 space-y-4">
-            {directives.whatToPause.map((item, idx) => (
+            {(directives?.whatToPause || []).map((item, idx) => (
               <motion.div
                 key={item.niche}
                 initial={{ opacity: 0, x: 12 }}

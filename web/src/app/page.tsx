@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Sparkles, ArrowRight, ShieldCheck, Zap } from "lucide-react";
 import type { ClientReportPayload } from "@/types/intelligence";
 import { FALLBACK_CLIENT_REPORT } from "@/lib/fallback-data";
+import { normalizeClientReport } from "@/lib/normalize-report";
 import { HeaderNav } from "@/components/HeaderNav";
 import { HeroKpiTicker } from "@/components/HeroKpiTicker";
 import { NicheExplorer } from "@/components/NicheExplorer";
@@ -28,8 +29,8 @@ export default function Home(): React.JSX.Element {
       try {
         const res = await fetch("/data/client_report.json");
         if (res.ok) {
-          const json: ClientReportPayload = await res.json();
-          setData(json);
+          const json = await res.json();
+          setData(normalizeClientReport(json));
         }
       } catch {
         // Fallback data already active, graceful degradation

@@ -36,13 +36,14 @@ export function NicheExplorer({ niches }: NicheExplorerProps): React.JSX.Element
   };
 
   const filteredNiches = useMemo(() => {
+    const list = niches || [];
     if (activeFilter === "high_margin") {
-      return niches.filter((n) => n.tag === "Alta Margem");
+      return list.filter((n) => n.tag === "Alta Margem");
     }
     if (activeFilter === "price_war") {
-      return niches.filter((n) => n.tag === "Guerra de Preço");
+      return list.filter((n) => n.tag === "Guerra de Preço");
     }
-    return niches;
+    return list;
   }, [niches, activeFilter]);
 
   const getTagBadgeStyle = (tag: NicheSummary["tag"]) => {

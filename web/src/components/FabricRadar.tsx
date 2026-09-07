@@ -38,7 +38,7 @@ export function FabricRadar({ metrics }: FabricRadarProps): React.JSX.Element {
 
       {/* Meters Grid */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {metrics.map((metric, idx) => (
+        {(metrics || []).map((metric, idx) => (
           <motion.div
             key={metric.feature}
             initial={{ opacity: 0, y: 16 }}
