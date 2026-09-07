@@ -65,8 +65,9 @@ class Settings(BaseSettings):
     sender_instagram: str = "trendscoutbr"
 
     # Web Portal (Vercel)
-    portal_url: str = "https://trendscout-orcin.vercel.app"
-    portal_display_url: str = "trendscout-orcin.vercel.app"
+    portal_url: str = "https://trendscout-shopee.vercel.app"
+    portal_display_url: str = "trendscout-shopee.vercel.app"
+
 
     @field_validator("gemini_model_pool", mode="before")
     @classmethod

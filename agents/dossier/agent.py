@@ -627,8 +627,8 @@ def generate_dossier(
 
     # --- Subscription Callout & Web Portal ---
     settings = get_settings()
-    portal_url = getattr(settings, "portal_url", "https://trendscout-orcin.vercel.app")
-    portal_display_url = getattr(settings, "portal_display_url", "trendscout-orcin.vercel.app")
+    portal_url = getattr(settings, "portal_url", "https://trendscout-shopee.vercel.app")
+    portal_display_url = getattr(settings, "portal_display_url", "trendscout-shopee.vercel.app")
     portal_qr_base64 = _generate_qr_base64(portal_url)
 
 

@@ -9,7 +9,9 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://trendscout-orcin.vercel.app"),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_PORTAL_URL || "https://trendscout-shopee.vercel.app",
+  ),
   title: "Trend Scout BR • Inteligência de Mercado Shopee para Camisetas",
   description:
     "Portal semanal de inteligência de mercado para confeccionistas e lojistas de camisetas. Estampas breakout, dispersão de preços e diretrizes táticas.",
