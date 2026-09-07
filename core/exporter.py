@@ -355,10 +355,13 @@ def compute_fabric_radar(all_products: list[dict[str, Any]]) -> list[dict[str, A
         radar_items.append(
             {
                 "name": pat["name"],
+                "feature": pat["name"],
                 "count": cnt,
                 "share_pct": share,
+                "percentage": share,
                 "highlight": pat["highlight"],
                 "comment": pat["comment"],
+                "description": pat["comment"],
             }
         )
     return radar_items

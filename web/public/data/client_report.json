@@ -394,38 +394,53 @@
   "fabric_radar": [
     {
       "name": "Algodão 30.1 / Penteado",
+      "feature": "Algodão 30.1 / Penteado",
       "count": 274,
       "share_pct": 55.1,
+      "percentage": 55.1,
       "highlight": "Padrão ouro em malharia",
-      "comment": "Presente na maioria absoluta dos líderes de giro, garantindo percepção de qualidade."
+      "comment": "Presente na maioria absoluta dos líderes de giro, garantindo percepção de qualidade.",
+      "description": "Presente na maioria absoluta dos líderes de giro, garantindo percepção de qualidade."
     },
     {
       "name": "Modelagem Oversized / Streetwear",
+      "feature": "Modelagem Oversized / Streetwear",
       "count": 211,
       "share_pct": 42.5,
+      "percentage": 42.5,
       "highlight": "Corte de maior valor percebido",
-      "comment": "Permite ticket médio superior (R$ 39 a R$ 65) e alta tração no público jovem."
+      "comment": "Permite ticket médio superior (R$ 39 a R$ 65) e alta tração no público jovem.",
+      "description": "Permite ticket médio superior (R$ 39 a R$ 65) e alta tração no público jovem."
     },
     {
       "name": "Kits Promocionais (2 a 5 Peças)",
+      "feature": "Kits Promocionais (2 a 5 Peças)",
       "count": 55,
       "share_pct": 11.1,
+      "percentage": 11.1,
       "highlight": "Alavanca de ticket médio",
-      "comment": "Amortiza o frete por pedido e maximiza a receita bruta por transação."
+      "comment": "Amortiza o frete por pedido e maximiza a receita bruta por transação.",
+      "description": "Amortiza o frete por pedido e maximiza a receita bruta por transação."
     },
     {
       "name": "Estampa Costas / DTF Digital",
+      "feature": "Estampa Costas / DTF Digital",
       "count": 26,
       "share_pct": 5.2,
+      "percentage": 5.2,
       "highlight": "Composição visual predominante",
-      "comment": "Frente minimalista combinada com arte dorsal ampla tem a maior taxa de conversão."
+      "comment": "Frente minimalista combinada com arte dorsal ampla tem a maior taxa de conversão.",
+      "description": "Frente minimalista combinada com arte dorsal ampla tem a maior taxa de conversão."
     },
     {
       "name": "Gola Ribana / Canelada",
+      "feature": "Gola Ribana / Canelada",
       "count": 14,
       "share_pct": 2.8,
+      "percentage": 2.8,
       "highlight": "Acabamento estruturado",
-      "comment": "Golas caneladas fechadas aumentam durabilidade pós-lavagem e minimizam devoluções."
+      "comment": "Golas caneladas fechadas aumentam durabilidade pós-lavagem e minimizam devoluções.",
+      "description": "Golas caneladas fechadas aumentam durabilidade pós-lavagem e minimizam devoluções."
     }
   ],
   "directives": {

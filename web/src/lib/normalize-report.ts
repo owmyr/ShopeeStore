@@ -108,17 +108,17 @@ export function normalizeClientReport(raw: any): ClientReportPayload {
       priceBrl: Number(b.priceBrl ?? b.price_brl ?? 0),
       shopeeItemCode: String(b.shopeeItemCode || b.id || `item-${idx}`),
       specs: {
-        cut: String(rawAudit.cut || "Oversized Boxy"),
-        fabric: String(rawAudit.fabric || "100% Algodão 30.1 Penteado"),
-        printTechnique: String(rawAudit.printTechnique || rawAudit.print_technique || "DTF Têxtil HD"),
-        estimatedMargin: String(rawAudit.estimatedMargin || rawAudit.margin_estimate || "65% - 70%"),
+        cut: String(rawAudit.corte_modelagem || rawAudit.cut || "Oversized Boxy"),
+        fabric: String(rawAudit.malha_sugerida || rawAudit.fabric || "100% Algodão 30.1 Penteado"),
+        printTechnique: String(rawAudit.tecnica_estampa || rawAudit.printTechnique || rawAudit.print_technique || "DTF Têxtil HD"),
+        estimatedMargin: String(rawAudit.estimativa_margem || rawAudit.estimatedMargin || rawAudit.margin_estimate || "65% - 70%"),
         costEstimateBrl: Number(rawAudit.costEstimateBrl ?? rawAudit.cost_estimate_brl ?? 14.5),
         targetAudience: String(rawAudit.targetAudience || rawAudit.target_audience || "Jovem / Streetwear"),
       },
     };
   });
 
-  // 5. Fabric Radar (supports both "fabricRadar" and "fabric_radar")
+  // 5. Fabric Radar (supports both "fabricRadar" and "fabric_radar", and both "name" and "feature")
   const rawFabric = Array.isArray(raw.fabricRadar)
     ? raw.fabricRadar
     : Array.isArray(raw.fabric_radar)
@@ -126,7 +126,7 @@ export function normalizeClientReport(raw: any): ClientReportPayload {
     : [];
 
   const fabricRadar: FabricModelingMetric[] = rawFabric.map((f: any) => {
-    let trend: "up" | "stable" | "down" = "stable";
+    let trend: "up" | "stable" | "down" = "up";
     if (f.trend === "up" || f.trend === "down" || f.trend === "stable") {
       trend = f.trend;
     } else if (typeof f.trend === "string" && f.trend.toLowerCase().includes("alta")) {
@@ -134,10 +134,10 @@ export function normalizeClientReport(raw: any): ClientReportPayload {
     }
 
     return {
-      feature: String(f.feature || "Característica Têxtil"),
-      percentage: Number(f.percentage ?? f.share_pct ?? 0),
+      feature: String(f.name || f.feature || f.attribute || "Característica Têxtil"),
+      percentage: Number(f.share_pct ?? f.percentage ?? 0),
       trend,
-      description: String(f.description || f.comment || "Padrão de produção auditado."),
+      description: String(f.comment || f.description || f.highlight || "Padrão de produção auditado."),
     };
   });
 
