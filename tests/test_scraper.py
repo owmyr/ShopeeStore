@@ -251,6 +251,7 @@ class TestPerKeywordCap:
 
         get_settings.cache_clear()
         settings = get_settings()
+        monkeypatch.setattr(settings, "scrape_adaptive_keywords_enabled", False)
         monkeypatch.setattr(settings, "scrape_keywords", ["niche-alpha", "niche-beta"])
 
         class MockResponse:
@@ -407,3 +408,67 @@ class TestPerKeywordCap:
             assert len(products) == 5
         finally:
             get_settings.cache_clear()
+
+
+class TestAdaptiveKeywordsIntegration:
+    """Verify adaptive keyword loop integration within the scraper execution flow."""
+
+    def test_adaptive_keywords_invoked_when_enabled(self, tmp_path, monkeypatch) -> None:
+        """Confirm scraper queries dynamic adaptive keywords when enabled in settings."""
+        auth_file = tmp_path / "shopee_auth.json"
+        auth_file.write_text("{}", encoding="utf-8")
+        monkeypatch.setenv("SHOPEE_AUTH_PATH", str(auth_file))
+        monkeypatch.setattr(scraper.time, "sleep", lambda _: None)
+
+        get_settings.cache_clear()
+        settings = get_settings()
+        monkeypatch.setattr(settings, "scrape_adaptive_keywords_enabled", True)
+
+        scraped_urls: list[str] = []
+
+        class MockPage:
+            def __init__(self):
+                self.url = "https://shopee.com.br/"
+                self.mouse = type("M", (), {"wheel": lambda self, dx, dy: None})()
+
+            def on(self, event, handler):
+                pass
+
+            def goto(self, url, **kwargs):
+                scraped_urls.append(url)
+
+            def wait_for_timeout(self, ms):
+                pass
+
+            def evaluate(self, js):
+                return []
+
+        mock_page = MockPage()
+        mock_pw_context = type(
+            "PW", (), {"__enter__": lambda s: s, "__exit__": lambda *a: None}
+        )()
+        monkeypatch.setattr(scraper, "sync_playwright", lambda: mock_pw_context)
+        monkeypatch.setattr(
+            scraper,
+            "_new_context",
+            lambda pw, **kwargs: (
+                type("B", (), {"close": lambda self: None})(),
+                type("C", (), {"new_page": lambda self: mock_page})(),
+            ),
+        )
+
+        mock_adaptive_kws = ["kw-anchor-1", "kw-dynamic-2"]
+        monkeypatch.setattr(
+            "agents.trend_scout.adaptive_seeds.get_adaptive_scrape_keywords",
+            lambda max_total: mock_adaptive_kws,
+        )
+
+        try:
+            scraper.scrape_best_sellers(dry_run=True)
+            search_urls = [u for u in scraped_urls if "search?keyword=" in u]
+            assert any("kw-anchor-1" in u for u in search_urls)
+            assert any("kw-dynamic-2" in u for u in search_urls)
+            assert all("kw-anchor-1" in u or "kw-dynamic-2" in u for u in search_urls)
+        finally:
+            get_settings.cache_clear()
+

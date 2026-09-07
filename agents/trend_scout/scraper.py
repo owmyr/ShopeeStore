@@ -417,7 +417,21 @@ def scrape_best_sellers(
     else:
         per_kw_target = min(getattr(settings, "scrape_max_per_keyword", 80), target)
 
-    keywords = settings.scrape_keywords if not category_url else []
+    if category_url:
+        keywords = []
+    else:
+        if settings.scrape_adaptive_keywords_enabled:
+            from agents.trend_scout.adaptive_seeds import get_adaptive_scrape_keywords
+
+            keywords = get_adaptive_scrape_keywords(max_total=len(settings.scrape_keywords))
+        else:
+            keywords = settings.scrape_keywords
+        log.info(
+            "scraping seeds: %s (adaptive=%s)",
+            keywords,
+            settings.scrape_adaptive_keywords_enabled,
+        )
+
     urls_to_scrape = [category_url] if category_url else [search_url(kw) for kw in keywords]
 
     shots = screenshot_dir or settings.data_dir

@@ -43,7 +43,18 @@ class Settings(BaseSettings):
     # rather than letting a single high-volume query exhaust the scraping quota.
     scrape_max_per_keyword: int = 80
     scrape_keyword: str = "camiseta estampada"
+    # Adaptive seed configuration (hybrid: 3 permanent anchors + dynamic exploration slots).
+    # Why: Anchors guarantee longitudinal baseline continuity across primary market pillars,
+    # while dynamic exploration slots capture emerging breakout themes surfaced by velocity
+    # metrics from prior weekly report runs.
+    scrape_adaptive_keywords_enabled: bool = True
+    scrape_anchor_keywords: list[str] = [
+        "camiseta estampada",
+        "camiseta streetwear",
+        "camiseta oversized estampada",
+    ]
     # Lateral niche keywords targeting high-affinity sub-markets in Shopee BR best-sellers.
+    # Serves as default static seed pool and fallback backfill when prior run data is unavailable.
     scrape_keywords: list[str] = [
         "camiseta streetwear",
         "camiseta oversized estampada",
