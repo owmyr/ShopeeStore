@@ -40,6 +40,7 @@ def test_run_once_persists_and_reports(isolated, tmp_path, monkeypatch) -> None:
     assert payload["product_count"] == 1
     assert payload["printed_count"] == 1
     assert payload["excluded_plain_count"] == 1
+    assert "theme_opportunities" in payload
     assert payload["products"][0]["sold_count"] == 500
     assert len(calls) == 1
 

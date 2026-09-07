@@ -55,6 +55,7 @@ class TrendReport:
     price_p75_cents: int = 0
     theme_counts: list[tuple[str, int]] = field(default_factory=list)  # sorted desc
     theme_velocities: list[tuple[str, float]] = field(default_factory=list)
+    theme_opportunities: dict[str, dict[str, Any]] = field(default_factory=dict)
     breakout_products: list[dict[str, Any]] = field(default_factory=list)
     printed_count: int = 0
     excluded_plain_count: int = 0
@@ -257,6 +258,89 @@ def analyze_trends(
     return analyze(products, client=client, velocity_map=velocity_map)
 
 
+def compute_theme_opportunities(
+    analyzed: list[AnalyzedProduct],
+) -> dict[str, dict[str, Any]]:
+    """Compute market opportunity classifications and competitive dynamics for each print theme.
+
+    Why: B2B merchants and print shops need actionable signals distinguishing lucrative niches
+    (high sales velocity with fragmented seller base or healthy price dispersion) from
+    over-saturated commodity niches (heavy price wars) or early emerging breakout trends.
+    This classification guides merchandising recommendations and outreach pitch personalization.
+
+    Args:
+        analyzed: List of analyzed products containing theme, pricing, and velocity metrics.
+
+    Returns:
+        Mapping of theme name to opportunity metrics and classification dictionary:
+        - status_key: Machine-readable opportunity status identifier.
+        - label: Human-readable badge text in Brazilian Portuguese.
+        - badge_color: UI color token for dashboard visualization.
+        - total_velocity: Cumulative sales velocity across the theme.
+        - avg_velocity: Mean sales velocity per product listing.
+        - listings_count: Total analyzed listings within the theme.
+        - shops_count: Distinct merchant storefronts offering the theme.
+        - price_p25_cents: 25th percentile price in cents.
+        - price_p50_cents: Median price in cents.
+        - price_p75_cents: 75th percentile price in cents.
+        - spread_ratio: Relative margin spread (p50 - p25) / max(p50, 1).
+    """
+    by_theme: dict[str, list[AnalyzedProduct]] = {}
+    for ap in analyzed:
+        theme = ap.theme
+        if not theme or theme == NAO_ESTAMPADA:
+            continue
+        by_theme.setdefault(theme, []).append(ap)
+
+    opportunities: dict[str, dict[str, Any]] = {}
+    for theme, prods in by_theme.items():
+        listings_count = len(prods)
+        shops_count = len({p.product.shop_id for p in prods})
+        total_velocity = round(sum(p.velocity_metrics.velocity_per_day for p in prods), 1)
+        avg_velocity = round(total_velocity / listings_count, 1) if listings_count > 0 else 0.0
+
+        prices = sorted(p.product.price_cents for p in prods)
+        p25 = percentile(prices, 0.25)
+        p50 = percentile(prices, 0.50)
+        p75 = percentile(prices, 0.75)
+        spread_ratio = round((p50 - p25) / max(p50, 1), 4)
+
+        if avg_velocity >= 10.0 or total_velocity >= 40.0:
+            if shops_count <= 8 or spread_ratio >= 0.20:
+                status_key = "high_demand_low_comp"
+                label = "Alta Procura • Pouca Concorrência"
+                badge_color = "emerald"
+            else:
+                status_key = "high_comp"
+                label = "Nicho Muito Disputado (Briga de Preço)"
+                badge_color = "amber"
+        else:
+            if any(p.velocity_metrics.is_new for p in prods):
+                status_key = "emerging"
+                label = "Estampas Novas Começando a Vender"
+                badge_color = "indigo"
+            else:
+                status_key = "steady"
+                label = "Mercado Estável"
+                badge_color = "slate"
+
+        opportunities[theme] = {
+            "status_key": status_key,
+            "label": label,
+            "badge_color": badge_color,
+            "total_velocity": total_velocity,
+            "avg_velocity": avg_velocity,
+            "listings_count": listings_count,
+            "shops_count": shops_count,
+            "price_p25_cents": p25,
+            "price_p50_cents": p50,
+            "price_p75_cents": p75,
+            "spread_ratio": spread_ratio,
+        }
+
+    return opportunities
+
+
 def analyze(
     products: list[ScrapedProduct],
     *,
@@ -309,6 +393,7 @@ def analyze(
     report.products = analyzed
     report.theme_counts = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
     report.theme_velocities = sorted(theme_vels.items(), key=lambda kv: (-kv[1], kv[0]))
+    report.theme_opportunities = compute_theme_opportunities(analyzed)
 
     breakouts = []
     for ap in analyzed:

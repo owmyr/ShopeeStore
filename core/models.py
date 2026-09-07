@@ -82,7 +82,9 @@ class StoreLead(SQLModel, table=True):
     state: str | None = None
     status: str = Field(
         default="discovered", index=True
-    )  # discovered | contacted | interested | rejected
+    )
+    # Funnel stages: discovered | sample_sent | engaged | negotiating | subscribed | rejected
+    # Note: legacy "contacted" maps to "sample_sent", "interested" maps to "engaged"
     preferred_channel: str = "instagram"  # instagram | email
     top_theme: str | None = None
     top_product_title: str | None = None

@@ -14,6 +14,7 @@ from dashboard.supervision import (
     build_dossier_zip,
     get_crm_leads,
     get_ledger_history,
+    get_or_generate_theme_card,
     update_lead_crm,
 )
 
@@ -141,4 +142,156 @@ def test_update_lead_crm(db_session: Session) -> None:
     assert lead.notes == "Called them"
     assert lead.instagram == "insta_handle"
     assert lead.last_contacted_at is not None
+
+
+def test_update_lead_crm_sample_sent(db_session: Session) -> None:
+    """Verify sample_sent status sets last_contacted_at and does not overwrite it later."""
+    lead = StoreLead(
+        shop_id=456,
+        shop_name="Sample Shop",
+        discovered_at=datetime.now(UTC).replace(tzinfo=None),
+        status="discovered",
+        run_id="run2",
+    )
+    db_session.add(lead)
+    db_session.commit()
+    lead_id = lead.id
+    assert lead_id is not None
+
+    # Transition to sample_sent
+    update_lead_crm(lead_id, "sample_sent", "Sent anime card")
+    db_session.refresh(lead)
+    assert lead.status == "sample_sent"
+    assert lead.last_contacted_at is not None
+    first_contact = lead.last_contacted_at
+
+    # Transition to negotiating: last_contacted_at should not be overwritten
+    update_lead_crm(lead_id, "negotiating", "Talking numbers")
+    db_session.refresh(lead)
+    assert lead.status == "negotiating"
+    assert lead.last_contacted_at == first_contact
+
+
+def test_update_lead_crm_no_timestamp_for_other_statuses(db_session: Session) -> None:
+    """Verify non-outreach statuses do not set last_contacted_at."""
+    lead = StoreLead(
+        shop_id=789,
+        shop_name="Quiet Shop",
+        discovered_at=datetime.now(UTC).replace(tzinfo=None),
+        status="discovered",
+        run_id="run3",
+    )
+    db_session.add(lead)
+    db_session.commit()
+    lead_id = lead.id
+    assert lead_id is not None
+
+    update_lead_crm(lead_id, "rejected", "Not interested")
+    db_session.refresh(lead)
+    assert lead.status == "rejected"
+    assert lead.last_contacted_at is None
+
+
+def test_get_or_generate_theme_card_empty_slug() -> None:
+    """Verify empty or falsy theme slug returns None immediately."""
+    assert get_or_generate_theme_card("") is None
+
+
+def test_get_or_generate_theme_card_no_report(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify missing report directory returns None gracefully."""
+    monkeypatch.setattr(
+        "dashboard.supervision.get_latest_trend_report",
+        lambda: (None, None),
+    )
+    assert get_or_generate_theme_card("anime", report_dir=None) is None
+
+
+def test_get_or_generate_theme_card_cached(tmp_path) -> None:
+    """Verify cached PNG is returned without invoking generation logic."""
+    cards_dir = tmp_path / "cards"
+    cards_dir.mkdir(parents=True)
+    card_file = cards_dir / "anime.png"
+    card_file.write_bytes(b"dummy_png_bytes")
+
+    result = get_or_generate_theme_card("anime", report_dir=tmp_path)
+    assert result == card_file
+
+
+def test_get_or_generate_theme_card_generates_on_demand(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify missing card invokes generate_theme_card on demand."""
+    expected_path = tmp_path / "cards" / "geek.png"
+
+    def mock_generate(theme_slug: str, report_dir):
+        return expected_path
+
+    monkeypatch.setattr("dashboard.supervision.generate_theme_card", mock_generate)
+    result = get_or_generate_theme_card("geek", report_dir=tmp_path)
+    assert result == expected_path
+
+
+def test_get_or_generate_theme_card_handles_exception(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify generation failure returns None instead of raising an unhandled exception."""
+
+    def mock_fail(theme_slug: str, report_dir):
+        raise RuntimeError("Browser launch failure")
+
+    monkeypatch.setattr("dashboard.supervision.generate_theme_card", mock_fail)
+    result = get_or_generate_theme_card("fail_theme", report_dir=tmp_path)
+    assert result is None
+
+
+def test_app_runs_with_crm_funnel_and_cards(isolated, db_session: Session) -> None:
+    """Verify Streamlit AppTest runs cleanly with multi-stage CRM leads and opportunity data."""
+    from streamlit.testing.v1 import AppTest
+
+    # Setup report with opportunity metadata
+    report_dir = isolated / "reports" / "2026-09-06_run"
+    cards_dir = report_dir / "cards"
+    cards_dir.mkdir(parents=True)
+    (cards_dir / "animes.png").write_bytes(b"card_bytes")
+
+    payload = {
+        "products": [],
+        "theme_opportunities": {
+            "animes": {
+                "label": "🌊 Alta Procura • Pouca Concorrência",
+                "badge_color": "emerald",
+            }
+        },
+    }
+    (report_dir / "report.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    # Add diverse leads across stages
+    statuses = [
+        "discovered",
+        "sample_sent",
+        "contacted",
+        "engaged",
+        "interested",
+        "negotiating",
+        "subscribed",
+        "rejected",
+    ]
+    for i, st_name in enumerate(statuses, start=100):
+        db_session.add(
+            StoreLead(
+                shop_id=i,
+                shop_name=f"Shop {i}",
+                discovered_at=datetime.now(UTC).replace(tzinfo=None),
+                status=st_name,
+                top_theme="animes",
+                top_product_title=f"Shirt {i}",
+                run_id="run_crm_test",
+            )
+        )
+    db_session.commit()
+
+    at = AppTest.from_file("../dashboard/app.py", default_timeout=60)
+    at.run()
+    assert not at.exception
+
 

@@ -13,6 +13,7 @@ import pandas as pd
 import streamlit as st
 from sqlmodel import select
 
+from agents.dossier.agent import generate_theme_card
 from core import db
 from core.config import PROJECT_ROOT, get_settings
 from core.models import AgentLedger, StoreLead
@@ -59,6 +60,28 @@ def get_latest_trend_report() -> tuple[Path | None, dict[str, Any] | None]:
         return report_dir, None
 
 
+def get_or_generate_theme_card(theme_slug: str, report_dir: Path | None = None) -> Path | None:
+    """Get path to theme card PNG, generating it if needed.
+
+    Why: Allows on-demand card generation for B2B outreach samples without
+    pre-generating cards for all themes, falling back gracefully if generation fails.
+    """
+    if not theme_slug:
+        return None
+    if report_dir is None:
+        report_dir, _ = get_latest_trend_report()
+    if not report_dir:
+        return None
+    cards_dir = report_dir / "cards"
+    card_path = cards_dir / f"{theme_slug}.png"
+    if card_path.exists():
+        return card_path
+    try:
+        return generate_theme_card(theme_slug, report_dir)
+    except Exception:
+        return None
+
+
 def get_crm_leads(status_filter: list[str] | None = None) -> list[StoreLead]:
     """Query store leads from database."""
     with db.session_scope() as s:
@@ -69,7 +92,11 @@ def get_crm_leads(status_filter: list[str] | None = None) -> list[StoreLead]:
 
 
 def update_lead_crm(lead_id: int, status: str, notes: str, instagram: str | None = None) -> None:
-    """Update CRM fields for a lead."""
+    """Update CRM fields for a lead.
+
+    Why: Captures salesperson status transitions, personal notes, and verified Instagram handles,
+    recording the initial contact timestamp when advancing to sample_sent or contacted.
+    """
     with db.session_scope() as s:
         db_lead = s.get(StoreLead, lead_id)
         if db_lead:
@@ -77,7 +104,7 @@ def update_lead_crm(lead_id: int, status: str, notes: str, instagram: str | None
             db_lead.notes = notes
             if instagram is not None:
                 db_lead.instagram = instagram
-            if status == "contacted" and not db_lead.last_contacted_at:
+            if status in ("sample_sent", "contacted") and not db_lead.last_contacted_at:
                 db_lead.last_contacted_at = datetime.now(UTC).replace(tzinfo=None)
             s.add(db_lead)
             s.commit()

@@ -98,6 +98,7 @@ def _write_report(report: TrendReport) -> Path:
         "price_p75_cents": report.price_p75_cents,
         "theme_counts": report.theme_counts,
         "theme_velocities": report.theme_velocities,
+        "theme_opportunities": report.theme_opportunities,
         "breakout_products": report.breakout_products,
         "products": [
             {

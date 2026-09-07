@@ -10,12 +10,14 @@ from agents.trend_scout.scraper import ScrapedProduct
 from tests.conftest import FakeLLM
 
 
-def _product(item_id: int, title: str, price: int = 5000, sold: int = 100) -> ScrapedProduct:
+def _product(
+    item_id: int, title: str, price: int = 5000, sold: int = 100, shop_id: int = 1
+) -> ScrapedProduct:
     return ScrapedProduct(
         item_id=item_id,
-        shop_id=1,
+        shop_id=shop_id,
         title=title,
-        url=f"https://x/i.1.{item_id}",
+        url=f"https://x/i.{shop_id}.{item_id}",
         price_cents=price,
         sold_count=sold,
         rating=None,
@@ -182,6 +184,114 @@ class TestAnalyze:
         # price bands over [2000, 3000, 4000]
         assert report.price_p50_cents == 3000
         assert report.theme_counts == [("evangelicas", 1), ("pets", 1)]
+        assert "pets" in report.theme_opportunities
+        assert "evangelicas" in report.theme_opportunities
+
+
+class TestComputeThemeOpportunities:
+    def test_high_demand_low_comp_by_avg_velocity(self) -> None:
+        ap1 = analyzer.AnalyzedProduct(
+            product=_product(1, "Anime A", price=3000, shop_id=10),
+            theme="anime",
+            velocity_metrics=analyzer.VelocityMetrics(velocity_per_day=15.0),
+        )
+        ap2 = analyzer.AnalyzedProduct(
+            product=_product(2, "Anime B", price=4000, shop_id=20),
+            theme="anime",
+            velocity_metrics=analyzer.VelocityMetrics(velocity_per_day=5.0),
+        )
+        res = analyzer.compute_theme_opportunities([ap1, ap2])
+        assert "anime" in res
+        opp = res["anime"]
+        assert opp["status_key"] == "high_demand_low_comp"
+        assert opp["label"] == "Alta Procura • Pouca Concorrência"
+        assert opp["badge_color"] == "emerald"
+        assert opp["total_velocity"] == 20.0
+        assert opp["avg_velocity"] == 10.0
+        assert opp["listings_count"] == 2
+        assert opp["shops_count"] == 2
+
+    def test_high_demand_low_comp_by_spread_ratio(self) -> None:
+        # total_velocity >= 40.0, shops_count = 9 (> 8)
+        # spread_ratio = (4000-2000)/4000 = 0.50 >= 0.20
+        products = []
+        for i in range(1, 10):
+            price = 2000 if i <= 4 else 4000
+            products.append(
+                analyzer.AnalyzedProduct(
+                    product=_product(i, f"Gamer {i}", price=price, shop_id=i * 10),
+                    theme="gamer",
+                    velocity_metrics=analyzer.VelocityMetrics(velocity_per_day=5.0),
+                )
+            )
+        res = analyzer.compute_theme_opportunities(products)
+        opp = res["gamer"]
+        assert opp["total_velocity"] == 45.0
+        assert opp["shops_count"] == 9
+        assert opp["spread_ratio"] >= 0.20
+        assert opp["status_key"] == "high_demand_low_comp"
+        assert opp["badge_color"] == "emerald"
+
+    def test_high_competition(self) -> None:
+        # total_velocity >= 40.0, shops_count = 10 (> 8)
+        # all prices same -> spread_ratio = 0.0 < 0.20
+        products = []
+        for i in range(1, 11):
+            products.append(
+                analyzer.AnalyzedProduct(
+                    product=_product(i, f"Meme {i}", price=3000, shop_id=i * 10),
+                    theme="memes",
+                    velocity_metrics=analyzer.VelocityMetrics(velocity_per_day=5.0),
+                )
+            )
+        res = analyzer.compute_theme_opportunities(products)
+        opp = res["memes"]
+        assert opp["total_velocity"] == 50.0
+        assert opp["shops_count"] == 10
+        assert opp["status_key"] == "high_comp"
+        assert opp["label"] == "Nicho Muito Disputado (Briga de Preço)"
+        assert opp["badge_color"] == "amber"
+
+    def test_emerging(self) -> None:
+        ap1 = analyzer.AnalyzedProduct(
+            product=_product(1, "Floral A", price=3000, shop_id=1),
+            theme="floral",
+            velocity_metrics=analyzer.VelocityMetrics(velocity_per_day=2.0, is_new=True),
+        )
+        ap2 = analyzer.AnalyzedProduct(
+            product=_product(2, "Floral B", price=3000, shop_id=2),
+            theme="floral",
+            velocity_metrics=analyzer.VelocityMetrics(velocity_per_day=1.0, is_new=False),
+        )
+        res = analyzer.compute_theme_opportunities([ap1, ap2])
+        opp = res["floral"]
+        assert opp["status_key"] == "emerging"
+        assert opp["label"] == "Estampas Novas Começando a Vender"
+        assert opp["badge_color"] == "indigo"
+
+    def test_steady(self) -> None:
+        ap = analyzer.AnalyzedProduct(
+            product=_product(1, "Vintage A", price=3000, shop_id=1),
+            theme="vintage",
+            velocity_metrics=analyzer.VelocityMetrics(velocity_per_day=2.0, is_new=False),
+        )
+        res = analyzer.compute_theme_opportunities([ap])
+        opp = res["vintage"]
+        assert opp["status_key"] == "steady"
+        assert opp["label"] == "Mercado Estável"
+        assert opp["badge_color"] == "slate"
+
+    def test_excludes_nao_estampada_and_unthemed(self) -> None:
+        ap1 = analyzer.AnalyzedProduct(
+            product=_product(1, "Plain X", price=2000),
+            theme=NAO_ESTAMPADA,
+        )
+        ap2 = analyzer.AnalyzedProduct(
+            product=_product(2, "No theme", price=2000),
+            theme=None,
+        )
+        res = analyzer.compute_theme_opportunities([ap1, ap2])
+        assert res == {}
 
 
 @pytest.fixture(autouse=True)

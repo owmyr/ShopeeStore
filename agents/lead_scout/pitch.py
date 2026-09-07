@@ -3,6 +3,7 @@ from dashboard.pitches import (
     generate_instagram_pitch,
     generate_instagram_url,
     generate_shopee_chat_pitch,
+    generate_shopee_followup_pitch,
 )
 
 __all__ = [
@@ -10,4 +11,5 @@ __all__ = [
     "generate_instagram_pitch",
     "generate_instagram_url",
     "generate_shopee_chat_pitch",
+    "generate_shopee_followup_pitch",
 ]

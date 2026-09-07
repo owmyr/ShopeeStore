@@ -16,6 +16,7 @@ from agents.lead_scout.pitch import (
     generate_instagram_pitch,
     generate_instagram_url,
     generate_shopee_chat_pitch,
+    generate_shopee_followup_pitch,
 )
 from core.db import session_scope
 from core.models import Product, StoreLead
@@ -106,6 +107,20 @@ def test_shopee_chat_pitch():
     pitch = generate_shopee_chat_pitch(lead)
     assert "Geek Tees" in pitch
     assert "anime" in pitch
+    assert "edição cortesia desta semana para lojistas de camisetas" in pitch
+    assert "vimos que o nicho de anime está com bastante procura" in pitch
+    assert "3 estampas que mais aceleraram em vendas" in pitch
+    assert "é só me mandar um OK!" in pitch
+
+    # Safe from Shopee moderation triggers
+    assert "whatsapp" not in pitch.lower()
+    assert "pix" not in pitch.lower()
+    assert "http" not in pitch.lower()
+
+    # Dynamic opportunity label
+    custom_label = "Alta Procura • Pouca Concorrência"
+    pitch_custom = generate_shopee_chat_pitch(lead, opportunity_label=custom_label)
+    assert custom_label in pitch_custom
 
     # Check that it handles missing top_theme
     lead_none = StoreLead(
@@ -114,6 +129,21 @@ def test_shopee_chat_pitch():
     pitch_none = generate_shopee_chat_pitch(lead_none)
     assert "No Theme Store" in pitch_none
     assert "seus produtos" in pitch_none
+
+
+def test_shopee_followup_pitch():
+    lead = StoreLead(
+        shop_id=2,
+        shop_name="Geek Tees",
+        top_theme="anime",
+        discovered_at=datetime.now(UTC),
+        run_id="test2",
+    )
+    followup = generate_shopee_followup_pitch(lead)
+    assert "Geek Tees" in followup
+    assert "mais de 20 nichos" in followup
+    assert "ranking de todas as estampas em alta" in followup
+    assert "Qual é o melhor WhatsApp ou e-mail de vocês" in followup
 
 
 def test_run_once(isolated) -> None:

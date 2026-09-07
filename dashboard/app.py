@@ -12,6 +12,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+from agents.trend_scout.filter import theme_slug as normalize_theme_slug
 from core import db
 from core.config import get_settings
 from dashboard.pitches import (
@@ -19,12 +20,14 @@ from dashboard.pitches import (
     generate_instagram_pitch,
     generate_instagram_url,
     generate_shopee_chat_pitch,
+    generate_shopee_followup_pitch,
 )
 from dashboard.supervision import (
     build_dossier_zip,
     get_crm_leads,
     get_latest_trend_report,
     get_ledger_history,
+    get_or_generate_theme_card,
     start_background_agent,
     update_lead_crm,
 )
@@ -211,6 +214,8 @@ with tab_gallery:
 
 with tab_crm:
     leads = get_crm_leads()
+    report_dir, payload = get_latest_trend_report()
+    theme_opportunities = payload.get("theme_opportunities", {}) if payload else {}
 
     if not leads:
         st.info(
@@ -218,19 +223,37 @@ with tab_crm:
             "or run: python __main__.py leads"
         )
     else:
-        c1, c2, c3, c4 = st.columns(4)
+        c1, c2, c3, c4, c5 = st.columns(5)
         c1.metric("Total Leads", len(leads))
-        c2.metric("With Instagram", len([ld for ld in leads if ld.instagram]))
-        c3.metric("With Corporate Email", len([ld for ld in leads if ld.email]))
+        c2.metric(
+            "Amostra Enviada",
+            len([ld for ld in leads if ld.status in ("sample_sent", "contacted")]),
+        )
+        c3.metric(
+            "Engajados / Resposta",
+            len([ld for ld in leads if ld.status in ("engaged", "interested")]),
+        )
         c4.metric(
-            "Contacted", len([ld for ld in leads if ld.status in ("contacted", "interested")])
+            "Em Negociação",
+            len([ld for ld in leads if ld.status == "negotiating"]),
+        )
+        c5.metric(
+            "Assinantes Ativos",
+            len([ld for ld in leads if ld.status == "subscribed"]),
         )
 
         f_cols = st.columns([2, 1, 1, 2])
         status_filter = f_cols[0].multiselect(
             "Filter by status",
-            options=["discovered", "contacted", "interested", "rejected"],
-            default=["discovered", "contacted", "interested"],
+            options=[
+                "discovered",
+                "sample_sent",
+                "engaged",
+                "negotiating",
+                "subscribed",
+                "rejected",
+            ],
+            default=["discovered", "sample_sent", "engaged", "negotiating"],
         )
         has_insta_filter = f_cols[1].selectbox(
             "Has Instagram?",
@@ -248,10 +271,18 @@ with tab_crm:
             placeholder="e.g. Zaroc, street, anime...",
         )
 
+        legacy_status_map = {
+            "contacted": "sample_sent",
+            "interested": "engaged",
+        }
+
         filtered_leads = [
             ld
             for ld in leads
-            if ld.status in status_filter
+            if (
+                ld.status in status_filter
+                or legacy_status_map.get(ld.status, ld.status) in status_filter
+            )
             and (
                 has_insta_filter == "All"
                 or (has_insta_filter == "Yes" and bool(ld.instagram))
@@ -286,11 +317,35 @@ with tab_crm:
                 theme_display = lead.top_theme or "camisetas estampadas"
                 st.caption(f"{theme_display} | {lead.top_product_title or 'Sem título'}")
 
+                opp = (
+                    theme_opportunities.get(lead.top_theme, {})
+                    if (lead.top_theme and isinstance(theme_opportunities, dict))
+                    else {}
+                )
+                if not opp and lead.top_theme and isinstance(theme_opportunities, dict):
+                    opp = theme_opportunities.get(normalize_theme_slug(lead.top_theme), {})
+
+                if opp.get("label"):
+                    st.caption(f"🎯 Oportunidade: **{opp['label']}**")
+
                 st.link_button(
                     "💬 Conversar no Chat da Shopee",
                     f"https://shopee.com.br/shop/{lead.shop_id}",
                     use_container_width=True,
                 )
+
+                if lead.top_theme:
+                    card_path = get_or_generate_theme_card(lead.top_theme, report_dir)
+                    if card_path and card_path.exists():
+                        with open(card_path, "rb") as f:
+                            st.download_button(
+                                label="📥 Baixar Card Amostra (PNG)",
+                                data=f.read(),
+                                file_name=f"card_{lead.top_theme}.png",
+                                mime="image/png",
+                                key=f"card_dl_{lead.id}",
+                                use_container_width=True,
+                            )
 
                 btn_cols = st.columns(3)
                 if lead.instagram:
@@ -316,8 +371,17 @@ with tab_crm:
                 btn_cols[2].link_button("Ver Loja na Shopee", shop_link)
 
                 with st.expander("Ver Sugestão de Pitch"):
-                    st.markdown("**Chat da Shopee (Alcance Imediato)**")
-                    st.code(generate_shopee_chat_pitch(lead), language="text")
+                    st.markdown("**1. Envio da Amostra (1ª Mensagem no Chat da Shopee)**")
+                    opp_label = opp.get("label")
+                    st.code(generate_shopee_chat_pitch(lead, opp_label), language="text")
+                    st.caption("💡 Dica: Anexe o Card PNG baixado acima na mesma mensagem!")
+
+                    st.markdown("**2. Follow-up de Fechamento (Quando o Lojista Responde)**")
+                    st.code(generate_shopee_followup_pitch(lead), language="text")
+                    st.caption(
+                        "💡 Objetivo: Migrar para WhatsApp/Email para "
+                        "apresentar a assinatura semanal."
+                    )
 
                     if lead.instagram:
                         st.markdown("**Instagram Direct**")
@@ -330,11 +394,22 @@ with tab_crm:
                         st.code(email_pitch["body"], language="text")
 
                 ctrl_cols = st.columns(3)
-                status_opts = ["discovered", "contacted", "interested", "rejected"]
+                status_opts = [
+                    "discovered",
+                    "sample_sent",
+                    "engaged",
+                    "negotiating",
+                    "subscribed",
+                    "rejected",
+                ]
+                current_status = legacy_status_map.get(lead.status, lead.status)
+                status_idx = (
+                    status_opts.index(current_status) if current_status in status_opts else 0
+                )
                 new_status = ctrl_cols[0].selectbox(
                     "Status",
                     status_opts,
-                    index=status_opts.index(lead.status) if lead.status in status_opts else 0,
+                    index=status_idx,
                     key=f"status_{lead.id}",
                 )
                 new_insta = ctrl_cols[1].text_input(
@@ -350,7 +425,7 @@ with tab_crm:
 
                 clean_insta = new_insta.strip().lstrip("@") if new_insta.strip() else None
                 if (
-                    new_status != lead.status
+                    new_status != current_status
                     or new_notes != (lead.notes or "")
                     or clean_insta != lead.instagram
                 ):

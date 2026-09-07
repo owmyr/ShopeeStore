@@ -4,21 +4,43 @@ from core.config import get_settings
 from core.models import StoreLead
 
 
-def generate_shopee_chat_pitch(lead: StoreLead) -> str:
-    """
-    Generate a concise, respectful, platform-compliant Portuguese chat copy for Shopee.
+def generate_shopee_chat_pitch(lead: StoreLead, opportunity_label: str | None = None) -> str:
+    """Generate an authentic, platform-safe Brazilian Portuguese outreach pitch for Shopee Chat.
 
-    Why: Shopee actively filters external links (like Whatsapp or email) and aggressively
-    bans accounts using forbidden trigger words (like "Pix", "WhatsApp", "fora do app", etc.).
-    This pitch compliments their best-selling theme, notes recent market sales spikes,
-    and offers a free executive dossier PDF without using forbidden words.
+    Why: Shopee actively filters external links (WhatsApp, sites) and bans accounts using
+    forbidden terms (Pix, off-platform payment, external contact). This pitch establishes initial
+    rapport by gifting a complimentary weekly trend sample, contextualizing their primary niche,
+    and referencing an attached visual card of top accelerating prints, prompting a simple
+    'OK' response to sustain communication safely within platform rules.
     """
     theme = lead.top_theme or "seus produtos"
+    if opportunity_label:
+        situation = f"vimos que o nicho de {theme} está com {opportunity_label}"
+    else:
+        situation = f"vimos que o nicho de {theme} está com bastante procura"
+
     return (
-        f"Olá, {lead.shop_name}! Tudo bem? Parabéns pelo sucesso com {theme}. "
-        "Acompanhamos o pico de vendas do mercado recentemente. "
-        "Gostaria de receber um resumo visual semanal com as tendências em alta, "
-        "de forma 100% gratuita? Podemos enviar a imagem com os dados por aqui mesmo!"
+        f"Olá, {lead.shop_name}! Tudo bem? "
+        f"Preparamos uma edição cortesia desta semana para lojistas de camisetas: {situation}. "
+        "Anexamos acima o card resumo mostrando as 3 estampas que mais aceleraram em "
+        "vendas nos últimos dias. Atualizamos esse radar toda segunda-feira. "
+        "Se quiser continuar recebendo as próximas edições completas por aqui, "
+        "é só me mandar um OK!"
+    )
+
+
+def generate_shopee_followup_pitch(lead: StoreLead) -> str:
+    """Generate a follow-up pitch when a merchant responds with interest to the initial sample.
+
+    Why: Once the merchant signals interest (e.g. replies 'OK'), this pitch transitions to the
+    commercial value proposition of the comprehensive weekly dossier covering 20+ niches and asks
+    for their preferred off-chat channel (WhatsApp/email) to send subscription details.
+    """
+    return (
+        f"Show de bola, {lead.shop_name}! No relatório completo nós monitoramos mais de "
+        "20 nichos, com ranking de todas as estampas em alta e links diretos dos anúncios "
+        "para você auditar o mercado. Qual é o melhor WhatsApp ou e-mail de vocês para "
+        "eu enviar os detalhes de como funciona a assinatura semanal?"
     )
 
 
