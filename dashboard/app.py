@@ -271,6 +271,36 @@ with tab_crm:
             placeholder="e.g. Zaroc, street, anime...",
         )
 
+        if report_dir:
+            dossier_png_path = report_dir / "dossier.png"
+            dossier_pdf_path = report_dir / "dossier.pdf"
+            with st.container(border=True):
+                d_c1, d_c2, d_c3 = st.columns([1, 1, 2])
+                if dossier_png_path.exists():
+                    with open(dossier_png_path, "rb") as f:
+                        d_c1.download_button(
+                            label="📥 Baixar Dossiê Semanal (PNG para Chat)",
+                            data=f.read(),
+                            file_name=f"dossie_semanal_{report_dir.name}.png",
+                            mime="image/png",
+                            use_container_width=True,
+                            key="crm_top_dossier_png",
+                        )
+                if dossier_pdf_path.exists():
+                    with open(dossier_pdf_path, "rb") as f:
+                        d_c2.download_button(
+                            label="📄 Baixar Dossiê em PDF",
+                            data=f.read(),
+                            file_name=f"dossie_semanal_{report_dir.name}.pdf",
+                            mime="application/pdf",
+                            use_container_width=True,
+                            key="crm_top_dossier_pdf",
+                        )
+                d_c3.caption(
+                    "💡 **Estratégia Comercial**: Anexe a imagem do Dossiê Semanal na "
+                    "1ª mensagem do Chat da Shopee para demonstrar valor e propor a assinatura."
+                )
+
         legacy_status_map = {
             "contacted": "sample_sent",
             "interested": "engaged",
@@ -314,7 +344,7 @@ with tab_crm:
                     title += f" - {lead.city}/{lead.state}"
 
                 st.subheader(title)
-                theme_display = lead.top_theme or "camisetas estampadas"
+                theme_display = lead.top_theme or "geral / multitemas"
                 st.caption(f"{theme_display} | {lead.top_product_title or 'Sem título'}")
 
                 opp = (
@@ -371,16 +401,17 @@ with tab_crm:
                 btn_cols[2].link_button("Ver Loja na Shopee", shop_link)
 
                 with st.expander("Ver Sugestão de Pitch"):
-                    st.markdown("**1. Envio da Amostra (1ª Mensagem no Chat da Shopee)**")
+                    st.markdown("**1. Envio do Dossiê Semanal (1ª Mensagem no Chat da Shopee)**")
                     opp_label = opp.get("label")
                     st.code(generate_shopee_chat_pitch(lead, opp_label), language="text")
-                    st.caption("💡 Dica: Anexe o Card PNG baixado acima na mesma mensagem!")
+                    st.caption(
+                        "💡 Anexe a imagem do Dossiê Semanal (PNG) nesta mensagem!"
+                    )
 
                     st.markdown("**2. Follow-up de Fechamento (Quando o Lojista Responde)**")
                     st.code(generate_shopee_followup_pitch(lead), language="text")
                     st.caption(
-                        "💡 Objetivo: Migrar para WhatsApp/Email para "
-                        "apresentar a assinatura semanal."
+                        "💡 Objetivo: Apresentar a assinatura mensal para envio no WhatsApp."
                     )
 
                     if lead.instagram:

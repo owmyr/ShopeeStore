@@ -7,40 +7,37 @@ from core.models import StoreLead
 def generate_shopee_chat_pitch(lead: StoreLead, opportunity_label: str | None = None) -> str:
     """Generate an authentic, platform-safe Brazilian Portuguese outreach pitch for Shopee Chat.
 
-    Why: Shopee actively filters external links (WhatsApp, sites) and bans accounts using
-    forbidden terms (Pix, off-platform payment, external contact). This pitch establishes initial
-    rapport by gifting a complimentary weekly trend sample, contextualizing their primary niche,
-    and referencing an attached visual card of top accelerating prints, prompting a simple
-    'OK' response to sustain communication safely within platform rules.
+    Why: Attaching the comprehensive weekly dossier immediately gives undeniable visual proof
+    of intelligence depth. The copy positions this as a courtesy edition of our weekly B2B
+    intelligence service, directly offering a monthly subscription to receive the dossier every
+    Monday without violating Shopee anti-evasion rules.
     """
-    theme = lead.top_theme or "seus produtos"
-    if opportunity_label:
-        situation = f"vimos que o nicho de {theme} está com {opportunity_label}"
-    else:
-        situation = f"vimos que o nicho de {theme} está com bastante procura"
+    theme = lead.top_theme or "estampas em alta"
+    theme_mention = f" (com destaque no nicho de {theme})" if theme != "geral / multitemas" else ""
 
     return (
-        f"Olá, {lead.shop_name}! Tudo bem? "
-        f"Preparamos uma edição cortesia desta semana para lojistas de camisetas: {situation}. "
-        "Anexamos acima o card resumo mostrando as 3 estampas que mais aceleraram em "
-        "vendas nos últimos dias. Atualizamos esse radar toda segunda-feira. "
-        "Se quiser continuar recebendo as próximas edições completas por aqui, "
-        "é só me mandar um OK!"
+        f"Olá, equipe da {lead.shop_name}! Tudo bem?\n\n"
+        "Monitoramos semanalmente o mercado de camisetas e estamparia da Shopee BR. "
+        "Acabei de anexar aqui o nosso Dossiê Semanal de Tendências desta semana como cortesia "
+        f"para vocês avaliarem os nichos e as estampas mais aceleradas{theme_mention}.\n\n"
+        "Trabalhamos com uma assinatura mensal para enviar esse relatório atualizado toda "
+        "segunda-feira diretamente para confecções e lojistas parceiros.\n\n"
+        "Se quiser receber as próximas edições para direcionar o planejamento da loja, "
+        "me dá um toque por aqui que te passo os detalhes da assinatura mensal. Boas vendas!"
     )
 
 
 def generate_shopee_followup_pitch(lead: StoreLead) -> str:
-    """Generate a follow-up pitch when a merchant responds with interest to the initial sample.
+    """Generate a follow-up pitch when a merchant responds with interest to the weekly dossier.
 
-    Why: Once the merchant signals interest (e.g. replies 'OK'), this pitch transitions to the
-    commercial value proposition of the comprehensive weekly dossier covering 20+ niches and asks
-    for their preferred off-chat channel (WhatsApp/email) to send subscription details.
+    Why: Once the merchant signals interest, this pitch transitions to the commercial value
+    proposition of the recurring weekly intelligence subscription delivered on WhatsApp/email.
     """
     return (
-        f"Show de bola, {lead.shop_name}! No relatório completo nós monitoramos mais de "
-        "20 nichos, com ranking de todas as estampas em alta e links diretos dos anúncios "
-        "para você auditar o mercado. Qual é o melhor WhatsApp ou e-mail de vocês para "
-        "eu enviar os detalhes de como funciona a assinatura semanal?"
+        f"Show de bola, {lead.shop_name}! O relatório semanal sai toda segunda-feira às 07h "
+        "com o ranking dos 10 maiores nichos, auditoria das 12 estampas que mais aceleraram e "
+        "diretrizes de produção. A assinatura mensal se paga no primeiro lote.\n\n"
+        "Qual é o melhor WhatsApp ou e-mail de vocês para eu enviar as opções do plano?"
     )
 
 

@@ -310,3 +310,110 @@ def test_generate_theme_card_missing_dir(tmp_path: Path):
     with pytest.raises(FileNotFoundError):
         generate_theme_card("unknown_theme", report_dir=tmp_path / "nonexistent")
 
+
+def test_generate_dossier_comprehensive_intelligence(tmp_path: Path):
+    """Test full executive dossier with real velocity, macro KPIs, Top 10 themes, and fabrics."""
+    report_data = {
+        "generated_at": "20260906T011030Z",
+        "product_count": 100,
+        "printed_count": 100,
+        "price_p25_cents": 2500,
+        "price_p50_cents": 3500,
+        "price_p75_cents": 4500,
+        "theme_counts": [
+            ["streetwear", 30],
+            ["religioso", 25],
+            ["anime", 20],
+            ["k-pop", 15],
+            ["geek", 10],
+        ],
+        "theme_velocities": [
+            ["streetwear", 1200.0],
+            ["religioso", 800.0],
+            ["anime", 600.0],
+            ["k-pop", 500.0],
+            ["geek", 300.0],
+        ],
+        "theme_opportunities": {
+            "streetwear": {
+                "status_key": "high_demand_low_comp",
+                "label": "Alta Procura • Pouca Concorrência",
+                "badge_color": "emerald",
+            },
+            "anime": {
+                "status_key": "high_comp",
+                "label": "Nicho Muito Disputado (Briga de Preço)",
+                "badge_color": "amber",
+            },
+        },
+        "products": [
+            {
+                "item_id": 1001,
+                "title": "Camiseta Oversized Streetwear 100% Algodão 30.1 Penteado Gola Ribana",
+                "theme": "streetwear",
+                "price_cents": 4990,
+                "sold_count": 1500,
+                "velocity_per_day": 150.0,
+                "url": "https://shopee.com.br/item-1001",
+            },
+            {
+                "item_id": 1002,
+                "title": "Camiseta Anime Clássica Estampa Frontal Silk",
+                "theme": "anime",
+                "price_cents": 2500,
+                "sold_count": 800,
+                "velocity_per_day": 80.0,
+                "url": "https://shopee.com.br/item-1002",
+            },
+        ],
+    }
+
+    (tmp_path / "report.json").write_text(json.dumps(report_data), encoding="utf-8")
+
+    out_path = generate_dossier(report_dir=tmp_path, output_pdf=False)
+    assert out_path.name == "dossier.html"
+    assert out_path.exists()
+
+    html = out_path.read_text(encoding="utf-8")
+
+    # Header and Meta
+    assert "RADAR SEMANAL DE INTELIGÊNCIA EM ESTAMPARIA • SHOPEE BR" in html
+    assert "06/09/2026" in html
+    assert "20260906T011030Z" in html
+
+    # Macro KPIs
+    assert "100" in html  # Listings
+    assert "Ritmo do Mercado" in html
+    assert "Faturamento Semanal Est." in html
+    assert "Preço Mediano Base" in html
+    assert "R$ 35,00" in html
+
+    # Top 10 Themes Table & Badges
+    assert "Termômetro de Mercado: Ranking dos Top 10 Nichos da Semana" in html
+    assert "Streetwear" in html
+    assert "Alta Procura • Pouca Concorrência" in html
+    assert "Nicho Muito Disputado (Briga de Preço)" in html
+
+    # Modelagem and Fabric Radar
+    assert "Radar de Modelagens e Tecidos Vencedores" in html
+    assert "Algodão 30.1 / Penteado" in html
+    assert "Modelagem Oversized / Streetwear" in html
+
+    # Breakout Products
+    assert "As 12 Estampas que Mais Aceleraram em Vendas (Breakouts)" in html
+    assert "Camiseta Oversized Streetwear 100% Algodão 30.1" in html
+    assert "+150 peças/dia" in html
+    assert "R$ 49,90" in html
+    assert "https://shopee.com.br/item-1001" in html
+
+    # Strategic Directives
+    assert "Diretrizes Táticas de Produção da Semana" in html
+    assert "O Que Estampar (Alta Tração &amp; Margem Sadia)" in html or "O Que Estampar" in html
+    assert "O Que Pausar / Risco de Margem" in html
+
+    # Monthly Subscription Callout
+    assert "CLUBE DE INTELIGÊNCIA VIP • RADAR SEMANAL DE ESTAMPARIA" in html
+    assert "R$ 97,00 / mês" in html
+    assert "wa.me" in html
+
+

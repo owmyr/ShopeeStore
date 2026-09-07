@@ -2,272 +2,870 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Dossiê Semanal de Tendências em Estamparia — Shopee BR</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radar Semanal de Inteligência em Estamparia — Shopee BR</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         @page {
-            size: A4;
-            margin: 15mm;
+            size: A4 portrait;
+            margin: 5mm 8mm;
+        }
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
             margin: 0;
             padding: 0;
-            color: #0f172a; /* slate-900 */
-            background-color: #fff;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-        header {
-            border-bottom: 3px solid #e2e8f0; /* slate-200 */
-            padding-bottom: 20px;
-            margin-bottom: 25px;
-        }
-        .brand-bar {
-            font-size: 11px;
-            font-weight: 800;
-            color: #4f46e5; /* indigo-600 */
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            margin-bottom: 10px;
-        }
-        h1 {
-            font-size: 28px;
-            font-weight: 800;
-            margin: 0 0 15px 0;
-            text-transform: uppercase;
-            line-height: 1.2;
-        }
-        .kpi-row {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-        }
-        .kpi-card {
-            background: #f8fafc; /* slate-50 */
-            border: 1px solid #e2e8f0; /* slate-200 */
-            border-radius: 8px;
-            padding: 12px;
-            text-align: center;
-        }
-        .kpi-card span {
-            display: block;
-            font-size: 12px;
-            font-weight: 600;
-            color: #64748b;
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
-        .kpi-card strong {
-            font-size: 16px;
-            font-weight: 800;
             color: #0f172a;
+            background-color: #f8fafc;
+            line-height: 1.3;
+            font-size: 10.5px;
         }
-        h2 {
-            font-size: 20px;
-            font-weight: 700;
-            margin-top: 35px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 8px;
+
+        /* Multi-page container architecture */
+        .report-page {
+            width: 100%;
+            max-width: 1040px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 8px 14px;
+            box-sizing: border-box;
         }
-        .themes-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-bottom: 30px;
+        .page-1 {
+            page-break-after: always;
+            break-after: page;
         }
-        .theme-card {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 15px;
-            break-inside: avoid;
+        .page-2 {
+            page-break-before: always;
+            break-before: page;
         }
-        .theme-card h3 {
-            margin: 0 0 10px 0;
-            font-size: 16px;
-            font-weight: 700;
-            text-transform: capitalize;
-            color: #0f172a;
-        }
-        .badge {
-            display: inline-block;
-            background: #10b981; /* emerald-500 */
-            color: #fff;
-            padding: 4px 10px;
-            border-radius: 9999px;
-            font-size: 11px;
-            font-weight: 700;
-            margin-bottom: 15px;
-            letter-spacing: 0.5px;
-        }
-        .theme-stats {
-            font-size: 13px;
-        }
-        .theme-stats p {
-            margin: 5px 0;
+
+        /* Header Styles */
+        .header-bar {
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            border-bottom: 1.5px solid #e2e8f0;
+            padding-bottom: 4px;
+            margin-bottom: 6px;
         }
-        .theme-stats .volume {
+        .brand-badge {
+            font-size: 8.5px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: #4338ca;
+            text-transform: uppercase;
+            background: #eef2ff;
+            padding: 2px 7px;
+            border-radius: 4px;
+            border: 1px solid #c7d2fe;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .header-meta {
+            font-size: 8.5px;
+            font-weight: 600;
+            color: #64748b;
+        }
+        .header-meta strong {
+            color: #0f172a;
+        }
+
+        .title-block {
+            margin-bottom: 8px;
+        }
+        .main-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0 0 2px 0;
+            letter-spacing: -0.4px;
+            text-transform: uppercase;
+        }
+        .main-subtitle {
+            font-size: 9.5px;
+            color: #475569;
+            margin: 0;
+            line-height: 1.35;
+        }
+
+        /* KPI Row (4 Cards) */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .kpi-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 6px 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #4f46e5;
+        }
+        .kpi-card.kpi-emerald::before { background: #10b981; }
+        .kpi-card.kpi-indigo::before { background: #6366f1; }
+        .kpi-card.kpi-amber::before { background: #f59e0b; }
+        .kpi-card.kpi-slate::before { background: #0f172a; }
+
+        .kpi-label {
+            font-size: 8.5px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-bottom: 1px;
+        }
+        .kpi-value {
+            font-size: 15px;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: -0.3px;
+            line-height: 1.1;
+        }
+        .kpi-sub {
+            font-size: 8px;
+            color: #64748b;
+            margin-top: 2px;
+            font-weight: 500;
+        }
+
+        /* Section Headings */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 1.5px solid #0f172a;
+            padding-bottom: 3px;
+            margin-top: 8px;
+            margin-bottom: 6px;
+        }
+        .section-title {
+            font-size: 11.5px;
+            font-weight: 800;
+            color: #0f172a;
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .section-desc {
+            font-size: 8.5px;
+            color: #64748b;
+            margin: 0;
+        }
+
+        /* Section 1: Themes Table */
+        .themes-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9.5px;
+            margin-bottom: 8px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .themes-table th {
+            background: #f1f5f9;
+            color: #334155;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 8px;
+            letter-spacing: 0.4px;
+            padding: 4px 6px;
+            border-bottom: 1px solid #cbd5e1;
+            text-align: left;
+        }
+        .themes-table td {
+            padding: 3.5px 6px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #1e293b;
+            vertical-align: middle;
+        }
+        .themes-table tr:nth-child(even) td {
+            background-color: #fafbfd;
+        }
+        .themes-table tr:last-child td {
+            border-bottom: none;
+        }
+        .rank-pill {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            line-height: 18px;
+            text-align: center;
+            background: #e2e8f0;
+            color: #334155;
+            border-radius: 3px;
+            font-size: 8.5px;
+            font-weight: 800;
+        }
+        .rank-top {
+            background: #4f46e5;
+            color: #ffffff;
+        }
+        .theme-name-cell strong {
+            font-weight: 700;
+            font-size: 10px;
+            color: #0f172a;
+        }
+        .theme-slug-tag {
+            font-size: 8px;
+            color: #64748b;
+            margin-left: 3px;
+            font-family: ui-monospace, monospace;
+        }
+        .theme-count-tag {
+            display: inline-block;
+            font-size: 7.5px;
+            background: #f1f5f9;
+            color: #475569;
+            padding: 1px 3px;
+            border-radius: 3px;
+            margin-left: 3px;
+        }
+        .share-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .share-bar {
+            width: 40px;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .share-fill {
+            height: 100%;
+            background: #4f46e5;
+            border-radius: 2px;
+        }
+        .vel-text {
+            font-weight: 800;
+            color: #059669;
+            font-size: 9.5px;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            font-size: 8px;
+            font-weight: 700;
+            padding: 1.5px 6px;
+            border-radius: 10px;
+            white-space: nowrap;
+            letter-spacing: 0.2px;
+        }
+        .badge-emerald {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .badge-amber {
+            background: #fffbeb;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
+        .badge-indigo {
+            background: #eef2ff;
+            color: #3730a3;
+            border: 1px solid #c7d2fe;
+        }
+        .badge-slate {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* Section 2: Fabrics / Modelagem Grid */
+        .fabric-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+        .fabric-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            padding: 5px 8px;
+        }
+        .fabric-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2px;
+        }
+        .fabric-title {
+            font-size: 9.5px;
             font-weight: 700;
             color: #0f172a;
-            margin-bottom: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px dashed #cbd5e1;
         }
-        .theme-stats .price-row {
-            color: #475569;
+        .fabric-pct {
+            font-size: 8px;
+            font-weight: 800;
+            color: #4338ca;
+            background: #e0e7ff;
+            padding: 1px 4px;
+            border-radius: 3px;
         }
-        .theme-stats .price-row strong {
-            color: #0f172a;
+        .fabric-highlight {
+            font-size: 8.5px;
+            font-weight: 600;
+            color: #059669;
+            margin-bottom: 1px;
         }
-        .products-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
+        .fabric-desc {
+            font-size: 8px;
+            color: #64748b;
+            line-height: 1.25;
+            margin: 0;
         }
-        .product-card {
+
+        /* Page 2 Header Continuity */
+        .page2-header {
             display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1.5px solid #0f172a;
+            padding-bottom: 3px;
+            margin-bottom: 8px;
+        }
+        .page2-brand {
+            font-size: 8.5px;
+            font-weight: 800;
+            color: #4338ca;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+        .page2-meta {
+            font-size: 8px;
+            color: #64748b;
+        }
+
+        /* Section 3: Breakout Products (4-column grid) */
+        .breakouts-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .breakout-card {
+            background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 12px;
+            border-radius: 5px;
             overflow: hidden;
-            background: #f8fafc;
-            break-inside: avoid;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
         }
-        .product-image {
-            width: 100px;
-            height: 100px;
+        .breakout-img-box {
+            position: relative;
+            width: 100%;
+            height: 90px;
+            background: #f1f5f9;
+            overflow: hidden;
+        }
+        .breakout-img {
+            width: 100%;
+            height: 100%;
             object-fit: cover;
-            flex-shrink: 0;
+            display: block;
         }
-        .product-info {
-            padding: 12px;
-            flex: 1;
+        .breakout-badge-overlay {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            background: rgba(15, 23, 42, 0.85);
+            color: #34d399;
+            font-size: 7.5px;
+            font-weight: 800;
+            padding: 1.5px 4px;
+            border-radius: 3px;
+            backdrop-filter: blur(3px);
+        }
+        .breakout-theme-chip {
+            position: absolute;
+            bottom: 3px;
+            right: 3px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #334155;
+            font-size: 7px;
+            font-weight: 700;
+            padding: 1px 4px;
+            border-radius: 2px;
+            text-transform: capitalize;
+        }
+        .breakout-content {
+            padding: 5px 6px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            flex: 1;
         }
-        .product-title {
-            font-size: 12px;
+        .breakout-title {
+            font-size: 8.5px;
             font-weight: 600;
-            margin: 0 0 8px 0;
+            color: #1e293b;
+            line-height: 1.25;
+            margin: 0 0 4px 0;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
-            line-height: 1.4;
-            color: #1e293b;
+            height: 22px;
         }
-        .product-meta {
+        .breakout-bottom {
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
+            border-top: 1px dashed #e2e8f0;
+            padding-top: 4px;
         }
-        .product-meta .price {
-            font-size: 15px;
+        .breakout-price {
+            font-size: 10.5px;
             font-weight: 800;
             color: #0f172a;
         }
-        .product-link {
-            font-size: 11px;
-            font-weight: 600;
+        .breakout-sold {
+            font-size: 7px;
+            color: #64748b;
+            display: block;
+        }
+        .breakout-link {
+            font-size: 8px;
+            font-weight: 700;
             color: #4f46e5;
             text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
         }
-        .commercial-guidance {
-            margin-top: 35px;
-            background: #e0e7ff; /* indigo-100 */
-            border: 1px solid #c7d2fe; /* indigo-200 */
-            border-left: 4px solid #4f46e5;
-            border-radius: 8px;
-            padding: 18px;
-            break-inside: avoid;
+
+        /* Section 4: Strategic Production Directives */
+        .strategy-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
         }
-        .commercial-guidance h3 {
-            margin: 0 0 12px 0;
-            color: #3730a3; /* indigo-800 */
-            font-size: 16px;
+        .strategy-panel {
+            border-radius: 5px;
+            padding: 7px 10px;
+            border: 1px solid #e2e8f0;
+        }
+        .strategy-print {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            border-left: 3px solid #16a34a;
+        }
+        .strategy-pause {
+            background: #fffbeb;
+            border-color: #fde68a;
+            border-left: 3px solid #d97706;
+        }
+        .panel-heading {
+            font-size: 9.5px;
             font-weight: 800;
+            margin: 0 0 5px 0;
             text-transform: uppercase;
+            letter-spacing: 0.2px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
-        .commercial-guidance p {
-            margin: 8px 0;
-            font-size: 14px;
-            color: #3730a3;
-            line-height: 1.5;
+        .strategy-print .panel-heading { color: #166534; }
+        .strategy-pause .panel-heading { color: #92400e; }
+
+        .directive-item {
+            margin-bottom: 4px;
+            padding-bottom: 4px;
+            border-bottom: 1px dashed rgba(0,0,0,0.08);
         }
-        .commercial-guidance strong {
+        .directive-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        .directive-header {
+            font-size: 8.5px;
             font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 1px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .directive-tag {
+            font-size: 8px;
+            font-weight: 600;
+            color: #475569;
+        }
+        .directive-body {
+            font-size: 8px;
+            color: #334155;
+            line-height: 1.25;
+            margin: 0;
+        }
+
+        /* Section 5: VIP WhatsApp Subscription Callout */
+        .vip-banner {
+            background: linear-gradient(135deg, #090d16 0%, #1e1b4b 100%);
+            border: 1px solid #4338ca;
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #ffffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .vip-left {
+            flex: 1;
+        }
+        .vip-badge {
+            display: inline-block;
+            font-size: 7.5px;
+            font-weight: 800;
+            color: #fbbf24;
+            background: rgba(251, 191, 36, 0.15);
+            border: 1px solid rgba(251, 191, 36, 0.4);
+            padding: 1px 5px;
+            border-radius: 3px;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+        .vip-title {
+            font-size: 10.5px;
+            font-weight: 800;
+            color: #ffffff;
+            margin: 0 0 1px 0;
+            letter-spacing: -0.2px;
+        }
+        .vip-desc {
+            font-size: 8px;
+            color: #cbd5e1;
+            margin: 0 0 4px 0;
+            line-height: 1.25;
+        }
+        .vip-features {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2px 8px;
+        }
+        .vip-feat-item {
+            font-size: 7.5px;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .vip-right {
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .vip-price-tag {
+            font-size: 7.5px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .vip-price {
+            font-size: 14px;
+            font-weight: 800;
+            color: #34d399;
+            margin: 1px 0 4px 0;
+            line-height: 1;
+        }
+        .vip-btn {
+            background: #10b981;
+            color: #ffffff;
+            font-size: 8.5px;
+            font-weight: 800;
+            padding: 5px 11px;
+            border-radius: 4px;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
+        }
+
+        /* Responsive / Print utility */
+        @media print {
+            body {
+                background: #ffffff;
+            }
+            .report-page {
+                padding: 0;
+                max-width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <header>
-        <div class="brand-bar">TREND SCOUT INTELLIGENCE — RADAR DE TENDÊNCIAS</div>
-        <h1>Dossiê Semanal de Tendências em Estamparia {% if theme_filtered %}({{ theme_filtered|title }}){% endif %}</h1>
-        <div class="kpi-row">
-            <div class="kpi-card">
-                <span>Data da Análise</span>
-                <strong>{{ date }}</strong>
-            </div>
-            <div class="kpi-card">
-                <span>Volume de Mercado</span>
-                <strong>{{ market_volume }} anúncios</strong>
-            </div>
-            <div class="kpi-card">
-                <span>Preço Mediano Base</span>
-                <strong>R$ {{ "%.2f"|format(median_price) }}</strong>
-            </div>
-        </div>
-    </header>
-
-    {% if not theme_filtered %}
-    <section>
-        <h2>Principais Temas em Ascensão</h2>
-        <div class="themes-grid">
-            {% for theme in themes %}
-            <div class="theme-card">
-                <h3>{{ theme.name }}</h3>
-                <span class="badge">{{ theme.velocity }}</span>
-                <div class="theme-stats">
-                    <p class="volume"><span>Share de Volume:</span> <span>{{ theme.volume_share }}</span></p>
-                    <p class="price-row"><span>Preço p25:</span> <strong>R$ {{ "%.2f"|format(theme.p25) }}</strong></p>
-                    <p class="price-row"><span>Preço p50:</span> <strong>R$ {{ "%.2f"|format(theme.p50) }}</strong></p>
-                    <p class="price-row"><span>Preço p75:</span> <strong>R$ {{ "%.2f"|format(theme.p75) }}</strong></p>
+    <!-- ================= PAGE 1 ================= -->
+    <div class="report-page page-1">
+        <header>
+            <div class="header-bar">
+                <div class="brand-badge">
+                    <span>⚡</span> RADAR SEMANAL DE INTELIGÊNCIA EM ESTAMPARIA • SHOPEE BR
+                </div>
+                <div class="header-meta">
+                    Edição: <strong>#{{ report_id }}</strong> &nbsp;|&nbsp; Data de Auditoria: <strong>{{ date }}</strong>
                 </div>
             </div>
-            {% endfor %}
-        </div>
-    </section>
-    {% endif %}
 
-    <section>
-        <h2>Top Estampas Breakout</h2>
-        <div class="products-grid">
-            {% for prod in breakout_products %}
-            <div class="product-card">
-                <img src="{{ prod.base64_image }}" alt="Reference Image" class="product-image">
-                <div class="product-info">
-                    <div>
-                        <p class="product-title">{{ prod.title }}</p>
-                        <span class="badge">{{ prod.velocity }}</span>
-                    </div>
-                    <div class="product-meta">
-                        <span class="price">R$ {{ "%.2f"|format(prod.price_brl) }}</span>
-                        <a href="{{ prod.url }}" class="product-link" target="_blank">Ver Concorrente &rarr;</a>
-                    </div>
+            <div class="title-block">
+                <h1 class="main-title">
+                    Dossiê Semanal de Tendências em Estamparia {% if theme_filtered %}({{ theme_filtered|title }}){% endif %}
+                </h1>
+                <p class="main-subtitle">
+                    Inteligência executiva de mercado: volume transacionado, velocidade real de saída (peças/dia),
+                    dispersão de margens e radar de tecidos para confecções e marcas de estamparia.
+                </p>
+            </div>
+
+            <!-- Macro Market KPIs Row (4 Cards) -->
+            <div class="kpi-row">
+                <div class="kpi-card kpi-indigo">
+                    <div class="kpi-label">Anúncios Auditados</div>
+                    <div class="kpi-value">{{ printed_count }}</div>
+                    <div class="kpi-sub">100% filtrados por estampa ativa</div>
+                </div>
+                <div class="kpi-card kpi-emerald">
+                    <div class="kpi-label">Ritmo do Mercado</div>
+                    <div class="kpi-value">{{ market_daily_velocity_fmt }} pçs/dia</div>
+                    <div class="kpi-sub">~{{ weekly_volume_pieces_fmt }} peças / semana</div>
+                </div>
+                <div class="kpi-card kpi-slate">
+                    <div class="kpi-label">Faturamento Semanal Est.</div>
+                    <div class="kpi-value">{{ weekly_revenue_brl_fmt }}</div>
+                    <div class="kpi-sub">Volume bruto monitorado Shopee BR</div>
+                </div>
+                <div class="kpi-card kpi-amber">
+                    <div class="kpi-label">Preço Mediano Base</div>
+                    <div class="kpi-value">{{ price_p50_fmt }}</div>
+                    <div class="kpi-sub">Faixa p25: {{ price_p25_fmt }} • p75: {{ price_p75_fmt }}</div>
                 </div>
             </div>
-            {% endfor %}
-        </div>
-    </section>
+        </header>
 
-    <section class="commercial-guidance">
-        <h3>Diretrizes Comerciais - Ação Estratégica</h3>
-        <p><strong>Faixa de Preço Recomendada:</strong> R$ {{ "%.2f"|format(median_price * 0.9) }} a R$ {{ "%.2f"|format(median_price * 1.1) }}</p>
-        <p><strong>Estratégia de Tiragem em Lote:</strong> Iniciar com lotes de teste pequenos para temas com alta velocidade, ajustando conforme a absorção do mercado. Priorizar qualidade da malha e nitidez da estampa.</p>
-    </section>
+        <!-- SECTION 1: Top 10 Themes Ranking -->
+        <section>
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span>📊</span> Termômetro de Mercado: Ranking dos Top 10 Nichos da Semana
+                </h2>
+                <p class="section-desc">Classificação ponderada por volume de transação e dinâmica concorrencial</p>
+            </div>
+
+            <table class="themes-table">
+                <thead>
+                    <tr>
+                        <th style="width: 28px; text-align: center;">#</th>
+                        <th>Nicho / Tema</th>
+                        <th style="width: 105px;">Share de Mercado</th>
+                        <th style="width: 115px;">Ritmo de Vendas</th>
+                        <th style="width: 95px;">Preço Mediano (p50)</th>
+                        <th style="width: 85px;">Preço Médio</th>
+                        <th style="width: 175px;">Situação de Mercado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for theme in themes %}
+                    <tr data-theme="{{ theme.raw_name }}">
+                        <td style="text-align: center;">
+                            <span class="rank-pill {% if loop.index <= 3 %}rank-top{% endif %}">{{ theme.rank }}</span>
+                        </td>
+                        <td class="theme-name-cell">
+                            <strong>{{ theme.name }}</strong>
+                            <span class="theme-slug-tag">{{ theme.raw_name }}</span>
+                            <span class="theme-count-tag">{{ theme.count }} anúncios</span>
+                        </td>
+                        <td>
+                            <div class="share-bar-container">
+                                <span style="font-weight: 700; width: 34px;">{{ theme.share_pct }}</span>
+                                <div class="share-bar">
+                                    <div class="share-fill" style="width: {{ theme.share_pct }};"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="vel-text">{{ theme.velocity }}</span>
+                        </td>
+                        <td>
+                            <strong style="color: #0f172a;">{{ theme.p50_brl }}</strong>
+                        </td>
+                        <td>
+                            <span style="color: #475569;">{{ theme.avg_price_brl }}</span>
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ theme.badge_color }}">{{ theme.status_label }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <!-- SECTION 2: Modelagem & Fabric Radar -->
+        <section>
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span>🧵</span> Radar de Modelagens e Tecidos Vencedores
+                </h2>
+                <p class="section-desc">Frequência e atributos técnicos presentes nos anúncios líderes em faturamento</p>
+            </div>
+
+            <div class="fabric-grid">
+                {% for fdef in fabric_highlights %}
+                <div class="fabric-card">
+                    <div class="fabric-top">
+                        <span class="fabric-title">{{ fdef.name }}</span>
+                        <span class="fabric-pct">{{ fdef.percentage }}</span>
+                    </div>
+                    <div class="fabric-highlight">{{ fdef.highlight }}</div>
+                    <p class="fabric-desc">{{ fdef.comment }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+
+    <!-- ================= PAGE 2 ================= -->
+    <div class="report-page page-2">
+        <div class="page2-header">
+            <div class="page2-brand">RADAR SEMANAL DE INTELIGÊNCIA EM ESTAMPARIA • SHOPEE BR</div>
+            <div class="page2-meta">Edição <strong>#{{ report_id }}</strong> &nbsp;|&nbsp; PÁGINA 2 DE 2</div>
+        </div>
+
+        <!-- SECTION 3: 12 Breakout Products -->
+        <section>
+            <div class="section-header" style="margin-top: 0;">
+                <h2 class="section-title">
+                    <span>🔥</span> As 12 Estampas que Mais Aceleraram em Vendas (Breakouts)
+                </h2>
+                <p class="section-desc">Anúncios com maior aceleração diária (+peças/dia) auditados na categoria</p>
+            </div>
+
+            <div class="breakouts-grid">
+                {% for prod in breakout_products %}
+                <div class="breakout-card" data-theme="{{ prod.theme }}">
+                    <div class="breakout-img-box">
+                        <img src="{{ prod.base64_image }}" alt="Mockup {{ prod.title }}" class="breakout-img" loading="eager">
+                        <div class="breakout-badge-overlay">{{ prod.velocity }}</div>
+                        <div class="breakout-theme-chip">{{ prod.clean_theme }}</div>
+                    </div>
+                    <div class="breakout-content">
+                        <p class="breakout-title" title="{{ prod.title }}">{{ prod.title }}</p>
+                        <div class="breakout-bottom">
+                            <div>
+                                <span class="breakout-price">{{ prod.price_brl_fmt }}</span>
+                                <span class="breakout-sold">{{ prod.sold_count_fmt }} vendidos</span>
+                            </div>
+                            <a href="{{ prod.url }}" target="_blank" class="breakout-link" rel="noreferrer">
+                                Ver Anúncio ↗
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- SECTION 4: Strategic Production Directives -->
+        <section>
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span>🎯</span> Diretrizes Táticas de Produção da Semana
+                </h2>
+                <p class="section-desc">Orientações comerciais para programar a estamparia e proteger o markup</p>
+            </div>
+
+            <div class="strategy-container">
+                <!-- Panel 1: To Print -->
+                <div class="strategy-panel strategy-print">
+                    <div class="panel-heading">
+                        <span>🟢</span> O Que Estampar (Alta Tração & Margem Sadia)
+                    </div>
+                    {% for item in strategic_production.to_print %}
+                    <div class="directive-item">
+                        <div class="directive-header">
+                            <span>{{ item.name }}</span>
+                            <span class="directive-tag">{{ item.velocity }} • Mediana {{ item.p50_brl }}</span>
+                        </div>
+                        <p class="directive-body">{{ item.action }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Panel 2: To Pause -->
+                <div class="strategy-panel strategy-pause">
+                    <div class="panel-heading">
+                        <span>🔴</span> O Que Pausar / Risco de Margem (Guerra de Preços)
+                    </div>
+                    {% for item in strategic_production.to_pause %}
+                    <div class="directive-item">
+                        <div class="directive-header">
+                            <span>{{ item.name }}</span>
+                            <span class="directive-tag">Mediana {{ item.p50_brl }} • {{ item.count }} concorrentes</span>
+                        </div>
+                        <p class="directive-body">
+                            <strong>Diagnóstico:</strong> {{ item.risk }}<br>
+                            <strong>Ação Tática:</strong> {{ item.mitigation }}
+                        </p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: VIP WhatsApp Monthly Subscription Callout -->
+        <footer>
+            <div class="vip-banner">
+                <div class="vip-left">
+                    <div class="vip-badge">ASSINATURA RECORRENTE B2B</div>
+                    <div class="vip-title">{{ subscription.title }}</div>
+                    <p class="vip-desc">{{ subscription.description }}</p>
+                    <div class="vip-features">
+                        {% for benefit in subscription.benefits %}
+                        <div class="vip-feat-item">
+                            <span style="color: #34d399;">✓</span> {{ benefit }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="vip-right">
+                    <div class="vip-price-tag">Investimento Mensal</div>
+                    <div class="vip-price">{{ subscription.price_monthly }}</div>
+                    <a href="{{ subscription.whatsapp_link }}" target="_blank" class="vip-btn" rel="noreferrer">
+                        📲 Assinar no WhatsApp
+                    </a>
+                </div>
+            </div>
+        </footer>
+    </div>
 </body>
 </html>
