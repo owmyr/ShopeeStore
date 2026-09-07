@@ -210,3 +210,200 @@ class TestNetworkParsing:
         resp = MockResponse(url="https://shopee.com.br/api/v4/other", data={"items": []})
         prods = scraper._parse_network_items(resp)
         assert len(prods) == 0
+
+
+class TestExtractProductsMaxItems:
+    def test_extract_products_respects_max_items(self) -> None:
+        class DummyPage:
+            def evaluate(self, js):
+                return [
+                    {
+                        "href": "https://shopee.com.br/Camiseta-A-i.1.101",
+                        "text": "Camiseta A\nR$ 25,00",
+                        "img": "img1",
+                    },
+                    {
+                        "href": "https://shopee.com.br/Camiseta-B-i.1.102",
+                        "text": "Camiseta B\nR$ 30,00",
+                        "img": "img2",
+                    },
+                    {
+                        "href": "https://shopee.com.br/Camiseta-C-i.1.103",
+                        "text": "Camiseta C\nR$ 35,00",
+                        "img": "img3",
+                    },
+                ]
+
+        seen: dict[int, scraper.ScrapedProduct] = {}
+        scraper._extract_products(DummyPage(), seen, max_items=2)
+        assert len(seen) == 2
+        assert set(seen.keys()) == {101, 102}
+
+
+class TestPerKeywordCap:
+    def test_scrape_respects_max_per_keyword(self, tmp_path, monkeypatch) -> None:
+        auth_file = tmp_path / "shopee_auth.json"
+        auth_file.write_text("{}", encoding="utf-8")
+        monkeypatch.setenv("SHOPEE_AUTH_PATH", str(auth_file))
+        monkeypatch.setenv("SCRAPE_MAX_PER_KEYWORD", "2")
+        monkeypatch.setenv("SCRAPE_MAX_PRODUCTS", "10")
+        monkeypatch.setattr(scraper.time, "sleep", lambda _: None)
+
+        get_settings.cache_clear()
+        settings = get_settings()
+        monkeypatch.setattr(settings, "scrape_keywords", ["niche-alpha", "niche-beta"])
+
+        class MockResponse:
+            def __init__(self, url: str, data: dict):
+                self.url = url
+                self._data = data
+
+            def json(self):
+                return self._data
+
+        class MockMouse:
+            def wheel(self, dx, dy):
+                pass
+
+        class MockPage:
+            def __init__(self):
+                self.url = "https://shopee.com.br/"
+                self._handlers = {}
+                self.mouse = MockMouse()
+
+            def on(self, event, handler):
+                self._handlers[event] = handler
+
+            def goto(self, url, **kwargs):
+                self.url = url
+                if "search" in url and "response" in self._handlers:
+                    kw = "alpha" if "niche-alpha" in url else "beta"
+                    items = [
+                        {
+                            "item_basic": {
+                                "itemid": (100 if kw == "alpha" else 200) + i,
+                                "shopid": 1,
+                                "name": f"Camiseta {kw} {i}",
+                                "price": 2500000,
+                                "historical_sold": 50,
+                            }
+                        }
+                        for i in range(1, 6)
+                    ]
+                    resp = MockResponse(
+                        url=f"https://shopee.com.br/api/v4/search/search_items?keyword={kw}",
+                        data={"items": items},
+                    )
+                    self._handlers["response"](resp)
+
+            def wait_for_timeout(self, ms):
+                pass
+
+            def evaluate(self, js):
+                return []
+
+        class MockContext:
+            def __init__(self, page):
+                self._page = page
+
+            def new_page(self):
+                return self._page
+
+        class MockBrowser:
+            def close(self):
+                pass
+
+        class MockPWContext:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                pass
+
+        mock_page = MockPage()
+        monkeypatch.setattr(scraper, "sync_playwright", lambda: MockPWContext())
+        monkeypatch.setattr(
+            scraper, "_new_context", lambda pw, **kwargs: (MockBrowser(), MockContext(mock_page))
+        )
+
+        try:
+            products = scraper.scrape_best_sellers()
+            assert len(products) == 4
+            alpha_ids = [p.item_id for p in products if "alpha" in p.title]
+            beta_ids = [p.item_id for p in products if "beta" in p.title]
+            # Each keyword yielded exactly 2 items despite 5 being available
+            assert alpha_ids == [101, 102]
+            assert beta_ids == [201, 202]
+        finally:
+            get_settings.cache_clear()
+
+    def test_dry_run_caps_at_five(self, tmp_path, monkeypatch) -> None:
+        auth_file = tmp_path / "shopee_auth.json"
+        auth_file.write_text("{}", encoding="utf-8")
+        monkeypatch.setenv("SHOPEE_AUTH_PATH", str(auth_file))
+        monkeypatch.setattr(scraper.time, "sleep", lambda _: None)
+
+        get_settings.cache_clear()
+
+        class MockPage:
+            def __init__(self):
+                self.url = "https://shopee.com.br/"
+                self.mouse = type("M", (), {"wheel": lambda self, dx, dy: None})()
+
+            def on(self, event, handler):
+                self._handler = handler
+
+            def goto(self, url, **kwargs):
+                self.url = url
+                if "search" in url:
+                    items = [
+                        {
+                            "item_basic": {
+                                "itemid": 300 + i,
+                                "shopid": 1,
+                                "name": f"Camiseta Teste {i}",
+                                "price": 2500000,
+                                "historical_sold": 50,
+                            }
+                        }
+                        for i in range(1, 10)
+                    ]
+                    resp = type(
+                        "R",
+                        (),
+                        {
+                            "url": "https://shopee.com.br/api/v4/search/search_items",
+                            "json": lambda self: {"items": items},
+                        },
+                    )()
+                    self._handler(resp)
+
+            def wait_for_timeout(self, ms):
+                pass
+
+            def evaluate(self, js):
+                return []
+
+        class MockPWContext:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                pass
+
+        mock_page = MockPage()
+        monkeypatch.setattr(scraper, "sync_playwright", lambda: MockPWContext())
+        monkeypatch.setattr(
+            scraper,
+            "_new_context",
+            lambda pw, **kwargs: (
+                type("B", (), {"close": lambda self: None})(),
+                type("C", (), {"new_page": lambda self: mock_page})(),
+            ),
+        )
+
+        try:
+            products = scraper.scrape_best_sellers(dry_run=True)
+            assert len(products) == 5
+        finally:
+            get_settings.cache_clear()

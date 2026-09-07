@@ -276,8 +276,17 @@ def login(timeout_sec: int = 600) -> Path:
 # ---------------------------------------------------------------------------
 
 
-def _extract_products(page: Page, seen: dict[int, ScrapedProduct]) -> None:
+def _extract_products(
+    page: Page, seen: dict[int, ScrapedProduct], max_items: int | None = None
+) -> None:
+    """Extract product cards from DOM anchors when network interception yields no items.
+
+    Caps new additions at max_items (if specified) to respect per-keyword and total targets.
+    """
+    added = 0
     for anchor in page.evaluate(_ANCHOR_DUMP_JS):
+        if max_items is not None and added >= max_items:
+            break
         parsed = parse_item_href(anchor["href"])
         if not parsed:
             continue
@@ -297,6 +306,7 @@ def _extract_products(page: Page, seen: dict[int, ScrapedProduct]) -> None:
             rating=rating,
             image_url=anchor["img"],
         )
+        added += 1
 
 
 def _parse_network_items(response: Response) -> list[ScrapedProduct]:
@@ -384,7 +394,15 @@ def scrape_best_sellers(
 
     Pagination (verified 2026-07): infinite scroll caps out early, results
     continue via `?page=N` URLs. Strategy: scroll each page until stagnant,
-    then advance to the next page."""
+    then advance to the next page.
+
+    Per-keyword capping rationale:
+    Instead of allowing one broad query (or dominant category) to fill the entire
+    scrape quota, each keyword is capped at `per_kw_target` (default 80 products).
+    This bounds scraping to the top-velocity items in each niche, prevents dead-tail
+    pollution from low-relevance deep pagination, and balances lateral niche discovery
+    evenly across all monitored niches.
+    """
     settings = get_settings()
     if not settings.shopee_auth_path.exists():
         raise ShopeeAuthError(
@@ -392,6 +410,12 @@ def scrape_best_sellers(
             "run `python -m agents.trend_scout.scraper --login` first"
         )
     target = 5 if dry_run else (max_products or settings.scrape_max_products)
+    if category_url:
+        per_kw_target = target
+    elif dry_run:
+        per_kw_target = 5
+    else:
+        per_kw_target = min(getattr(settings, "scrape_max_per_keyword", 80), target)
 
     keywords = settings.scrape_keywords if not category_url else []
     urls_to_scrape = [category_url] if category_url else [search_url(kw) for kw in keywords]
@@ -406,15 +430,19 @@ def scrape_best_sellers(
             page = context.new_page()
 
             network_items_captured = 0
+            kw_captured = 0
 
             def _handle_response(response: Response):
-                nonlocal network_items_captured
+                nonlocal network_items_captured, kw_captured
                 try:
                     prods = _parse_network_items(response)
                     for p in prods:
+                        if len(seen) >= target or kw_captured >= per_kw_target:
+                            break
                         if p.item_id not in seen:
                             seen[p.item_id] = p
                             network_items_captured += 1
+                            kw_captured += 1
                 except Exception:
                     pass
 
@@ -429,11 +457,17 @@ def scrape_best_sellers(
                     if len(seen) >= target:
                         break
 
+                    kw_captured = 0
                     stagnant_pages = 0
                     page_num = 0
                     new_since_pause = 0
 
-                    while len(seen) < target and stagnant_pages < 2 and page_num < MAX_PAGES:
+                    while (
+                        len(seen) < target
+                        and kw_captured < per_kw_target
+                        and stagnant_pages < 2
+                        and page_num < MAX_PAGES
+                    ):
                         page.goto(
                             page_url(url, page_num), wait_until="domcontentloaded", timeout=60000
                         )
@@ -456,7 +490,11 @@ def scrape_best_sellers(
                         stagnant_scrolls = 0
                         network_items_before = network_items_captured
 
-                        while len(seen) < target and stagnant_scrolls < 3:
+                        while (
+                            len(seen) < target
+                            and kw_captured < per_kw_target
+                            and stagnant_scrolls < 3
+                        ):
                             prev = len(seen)
 
                             # Humanized scrolling jitter
@@ -483,11 +521,17 @@ def scrape_best_sellers(
 
                         # Seamless DOM fallback
                         if network_items_captured == network_items_before:
-                            _extract_products(page, seen)
+                            dom_before = len(seen)
+                            rem = min(target - len(seen), per_kw_target - kw_captured)
+                            if rem > 0:
+                                _extract_products(page, seen, max_items=rem)
+                                kw_captured += len(seen) - dom_before
 
                         stagnant_pages = stagnant_pages + 1 if len(seen) == before else 0
                         log.info("scrape page %d done: %d products total", page_num, len(seen))
                         page_num += 1
+
+                    log.info("scraped %d items for keyword %s", kw_captured, url)
 
             except Exception:
                 shots.mkdir(parents=True, exist_ok=True)

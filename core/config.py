@@ -34,15 +34,25 @@ class Settings(BaseSettings):
     llm_model: str = "qwen2.5:14b-instruct"
     llm_host: str = "http://localhost:11434"
 
-    # Scraper
-    scrape_max_products: int = 500
+    # Scraper settings:
+    # Total scrape ceiling across all search queries.
+    scrape_max_products: int = 640
+    # Maximum items to capture per keyword query (8 niches * 80 items = 640 total).
+    # Capping items per keyword prevents "dead-tail" pollution (where deep pagination yields
+    # low-velocity or irrelevant listings) and guarantees balanced discovery across all 8 niches
+    # rather than letting a single high-volume query exhaust the scraping quota.
+    scrape_max_per_keyword: int = 80
     scrape_keyword: str = "camiseta estampada"
+    # Lateral niche keywords targeting high-affinity sub-markets in Shopee BR best-sellers.
     scrape_keywords: list[str] = [
-        "camiseta estampada",
         "camiseta streetwear",
-        "camiseta anime",
-        "camiseta gospel",
-        "camiseta vintage",
+        "camiseta oversized estampada",
+        "camiseta anime geek",
+        "camiseta gospel cristã",
+        "camiseta country agro",
+        "camiseta rock vintage",
+        "camiseta gym academia",
+        "camiseta automotiva moto",
     ]
     scrape_category_url: str = ""
     scrape_delay_min_sec: float = 3.0
