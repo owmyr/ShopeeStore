@@ -151,7 +151,12 @@ def test_shopee_followup_pitch():
     assert "Geek Tees" in followup
     assert "assinatura mensal" in followup
     assert "ranking dos 10 maiores nichos" in followup
-    assert "Qual é o melhor WhatsApp ou e-mail de vocês" in followup
+    assert "Qual o melhor e-mail ou canal de contato de vocês" in followup
+
+    # Strictly no prohibited platform evasion triggers in followup
+    assert "whatsapp" not in followup.lower()
+    assert "pix" not in followup.lower()
+    assert "http" not in followup.lower()
 
 
 def test_run_once(isolated) -> None:

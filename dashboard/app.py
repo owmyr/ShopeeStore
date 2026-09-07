@@ -411,7 +411,8 @@ with tab_crm:
                     st.markdown("**2. Follow-up de Fechamento (Quando o Lojista Responde)**")
                     st.code(generate_shopee_followup_pitch(lead), language="text")
                     st.caption(
-                        "💡 Objetivo: Apresentar a assinatura mensal para envio no WhatsApp."
+                        "💡 Objetivo: Apresentar a assinatura mensal para envio no "
+                        "canal direto da confecção."
                     )
 
                     if lead.instagram:

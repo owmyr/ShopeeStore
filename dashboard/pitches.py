@@ -32,13 +32,14 @@ def generate_shopee_followup_pitch(lead: StoreLead) -> str:
     """Generate a follow-up pitch when a merchant responds with interest to the weekly dossier.
 
     Why: Once the merchant signals interest, this pitch transitions to the commercial value
-    proposition of the recurring weekly intelligence subscription delivered on WhatsApp/email.
+    proposition of the recurring weekly intelligence subscription delivered on direct channels.
+    Strictly avoids forbidden trigger words like 'WhatsApp' or 'Pix' to prevent chat censorship.
     """
     return (
         f"Show de bola, {lead.shop_name}! O relatório semanal sai toda segunda-feira às 07h "
         "com o ranking dos 10 maiores nichos, auditoria das 12 estampas que mais aceleraram e "
         "diretrizes de produção. A assinatura mensal se paga no primeiro lote.\n\n"
-        "Qual é o melhor WhatsApp ou e-mail de vocês para eu enviar as opções do plano?"
+        "Qual o melhor e-mail ou canal de contato de vocês para eu enviar as opções do plano?"
     )
 
 
