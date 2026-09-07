@@ -405,15 +405,17 @@ def test_generate_dossier_comprehensive_intelligence(tmp_path: Path):
     assert "+150 peças/dia" in html
     assert "R$ 49,90" in html
     assert "https://shopee.com.br/item-1001" in html
+    assert "Shopee #1001" in html
 
     # Strategic Directives
     assert "Diretrizes Táticas de Produção da Semana" in html
     assert "O Que Estampar (Alta Tração &amp; Margem Sadia)" in html or "O Que Estampar" in html
     assert "O Que Pausar / Risco de Margem" in html
 
-    # Monthly Subscription Callout
-    assert "CLUBE DE INTELIGÊNCIA VIP • RADAR SEMANAL DE ESTAMPARIA" in html
+    # Monthly Subscription Callout & Web Portal
+    assert "PORTAL WEB" in html
+    assert "trendscout.vercel.app" in html
     assert "R$ 97,00 / mês" in html
-    assert "wa.me" in html
+    assert "Assine respondendo no chat" in html
 
 

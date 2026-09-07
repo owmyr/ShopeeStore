@@ -452,14 +452,18 @@
             color: #64748b;
             display: block;
         }
-        .breakout-link {
-            font-size: 8px;
+        .breakout-id-tag {
+            font-size: 7.5px;
             font-weight: 700;
-            color: #4f46e5;
+            color: #4338ca;
+            background: #eef2ff;
+            border: 1px solid #c7d2fe;
+            padding: 1.5px 5px;
+            border-radius: 3px;
+            letter-spacing: 0.2px;
             text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 2px;
+            display: inline-block;
+            white-space: nowrap;
         }
 
         /* Section 4: Strategic Production Directives */
@@ -582,34 +586,82 @@
             gap: 3px;
         }
         .vip-right {
-            text-align: right;
+            display: flex;
+            align-items: center;
+            gap: 10px;
             flex-shrink: 0;
         }
+        .vip-price-box {
+            text-align: right;
+        }
         .vip-price-tag {
-            font-size: 7.5px;
+            font-size: 7px;
             color: #94a3b8;
             text-transform: uppercase;
             letter-spacing: 0.4px;
         }
         .vip-price {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 800;
             color: #34d399;
-            margin: 1px 0 4px 0;
+            margin: 1px 0 0 0;
             line-height: 1;
+            white-space: nowrap;
         }
-        .vip-btn {
-            background: #10b981;
-            color: #ffffff;
+        .vip-portal-card {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 5px;
+            padding: 4px 8px;
+        }
+        .vip-qr-box {
+            width: 46px;
+            height: 46px;
+            background: #ffffff;
+            border-radius: 4px;
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .vip-qr-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        .vip-portal-info {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            text-align: left;
+        }
+        .vip-portal-url {
             font-size: 8.5px;
             font-weight: 800;
-            padding: 5px 11px;
-            border-radius: 4px;
-            text-decoration: none;
-            display: inline-block;
-            box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3);
-            text-transform: uppercase;
+            color: #38bdf8;
             letter-spacing: 0.2px;
+            white-space: nowrap;
+        }
+        .vip-portal-sub {
+            font-size: 7px;
+            color: #94a3b8;
+            line-height: 1.1;
+        }
+        .vip-chat-cta {
+            font-size: 7px;
+            font-weight: 700;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 3px;
+            padding: 1px 4px;
+            margin-top: 1px;
+            white-space: nowrap;
         }
 
         /* Responsive / Print utility */
@@ -633,7 +685,7 @@
                     <span>⚡</span> RADAR SEMANAL DE INTELIGÊNCIA EM ESTAMPARIA • SHOPEE BR
                 </div>
                 <div class="header-meta">
-                    Edição: <strong>#{{ report_id }}</strong> &nbsp;|&nbsp; Data de Auditoria: <strong>{{ date }}</strong>
+                    🌐 <strong>{{ portal_display_url }}</strong> &nbsp;|&nbsp; Edição: <strong>#{{ report_id }}</strong> &nbsp;|&nbsp; <strong>{{ date }}</strong>
                 </div>
             </div>
 
@@ -758,7 +810,7 @@
     <div class="report-page page-2">
         <div class="page2-header">
             <div class="page2-brand">RADAR SEMANAL DE INTELIGÊNCIA EM ESTAMPARIA • SHOPEE BR</div>
-            <div class="page2-meta">Edição <strong>#{{ report_id }}</strong> &nbsp;|&nbsp; PÁGINA 2 DE 2</div>
+            <div class="page2-meta">🌐 <strong>{{ portal_display_url }}</strong> &nbsp;|&nbsp; Edição <strong>#{{ report_id }}</strong> &nbsp;|&nbsp; PÁGINA 2 DE 2</div>
         </div>
 
         <!-- SECTION 3: 12 Breakout Products -->
@@ -785,8 +837,8 @@
                                 <span class="breakout-price">{{ prod.price_brl_fmt }}</span>
                                 <span class="breakout-sold">{{ prod.sold_count_fmt }} vendidos</span>
                             </div>
-                            <a href="{{ prod.url }}" target="_blank" class="breakout-link" rel="noreferrer">
-                                Ver Anúncio ↗
+                            <a href="{{ prod.url }}" target="_blank" class="breakout-id-tag" rel="noreferrer" title="Ver anúncio na Shopee">
+                                Shopee #{{ prod.item_id }}
                             </a>
                         </div>
                     </div>
@@ -858,11 +910,22 @@
                     </div>
                 </div>
                 <div class="vip-right">
-                    <div class="vip-price-tag">Investimento Mensal</div>
-                    <div class="vip-price">{{ subscription.price_monthly }}</div>
-                    <a href="{{ subscription.whatsapp_link }}" target="_blank" class="vip-btn" rel="noreferrer">
-                        📲 Assinar no WhatsApp
-                    </a>
+                    <div class="vip-price-box">
+                        <div class="vip-price-tag">Investimento Mensal</div>
+                        <div class="vip-price">{{ subscription.price_monthly }}</div>
+                    </div>
+                    <div class="vip-portal-card">
+                        {% if portal_qr_base64 %}
+                        <div class="vip-qr-box">
+                            <img src="{{ portal_qr_base64 }}" alt="QR Code Portal" class="vip-qr-img">
+                        </div>
+                        {% endif %}
+                        <div class="vip-portal-info">
+                            <div class="vip-portal-url">🌐 {{ portal_display_url }}</div>
+                            <div class="vip-portal-sub">Aponte a câmera para o painel</div>
+                            <div class="vip-chat-cta">💬 Assine respondendo no chat</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </footer>

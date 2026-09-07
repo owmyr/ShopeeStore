@@ -144,6 +144,28 @@ def _image_to_base64(img_path: Path) -> str:
     return f"data:image/svg+xml;base64,{b64}"
 
 
+def _generate_qr_base64(data: str) -> str:
+    """Generate a base64-encoded PNG QR code for print and static image embeds."""
+    if not data:
+        return ""
+    try:
+        import io
+
+        import qrcode
+
+        qr = qrcode.QRCode(box_size=4, border=1)
+        qr.add_data(data)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="#0f172a", back_color="white")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        encoded = base64.b64encode(buf.getvalue()).decode("utf-8")
+        return f"data:image/png;base64,{encoded}"
+    except Exception as exc:
+        logger.warning("Failed to generate QR code: %s", exc)
+        return ""
+
+
 def get_latest_report_dir() -> Path | None:
     reports = get_settings().data_dir / "reports"
     if not reports.exists():
@@ -569,25 +591,28 @@ def generate_dossier(
             }
         )
 
-    # --- Subscription Callout ---
+    # --- Subscription Callout & Web Portal ---
+    settings = get_settings()
+    portal_url = getattr(settings, "portal_url", "https://trendscout.vercel.app")
+    portal_display_url = getattr(settings, "portal_display_url", "trendscout.vercel.app")
+    portal_qr_base64 = _generate_qr_base64(portal_url)
+
     subscription_info = {
-        "title": "CLUBE DE INTELIGÊNCIA VIP • RADAR SEMANAL DE ESTAMPARIA",
+        "title": "PORTAL WEB & CLUBE VIP • RADAR SEMANAL DE ESTAMPARIA",
         "description": (
-            "Receba toda segunda-feira às 07h no seu WhatsApp o dossiê executivo completo "
-            "com as estampas que mais aceleraram em vendas na Shopee Brasil, fichas de tendência, "
-            "análise de tecidos e links diretos dos maiores concorrentes."
+            f"Acesso total ao painel interativo em {portal_display_url} com filtros por nicho, "
+            "ranking de todas as estampas em alta, links diretos dos concorrentes e envio do "
+            "dossiê executivo em PDF toda segunda-feira às 07h."
         ),
         "price_monthly": "R$ 97,00 / mês",
         "benefits": [
-            "Relatório em PDF executivo de alta resolução pronto para impressão",
+            f"Painel web interativo no ar em {portal_display_url}",
             "Top 12 a 16 estampas com maior pico de velocidade diária",
-            "Termômetro de nichos: onde tem margem sadia e onde há guerra de preço",
+            "Auditoria completa e links diretos de todos os anúncios",
             "Alertas estratégicos para não produzir peças com margem zero",
         ],
-        "whatsapp_link": (
-            "https://wa.me/5511999999999?text=Ol%C3%A1!%20"
-            "Quero%20assinar%20o%20Radar%20Semanal%20de%20Estamparia%20Shopee%20BR"
-        ),
+        "portal_url": portal_url,
+        "portal_display_url": portal_display_url,
     }
 
     # Format date and report ID
@@ -626,6 +651,9 @@ def generate_dossier(
             "to_pause": to_pause_recommendations,
         },
         "subscription": subscription_info,
+        "portal_url": portal_url,
+        "portal_display_url": portal_display_url,
+        "portal_qr_base64": portal_qr_base64,
         "theme_filtered": theme_slug,
     }
 

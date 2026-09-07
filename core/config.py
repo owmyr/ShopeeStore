@@ -64,6 +64,10 @@ class Settings(BaseSettings):
     sender_email: str = "contato.trendscout@gmail.com"
     sender_instagram: str = "trendscoutbr"
 
+    # Web Portal (Vercel)
+    portal_url: str = "https://trendscout.vercel.app"
+    portal_display_url: str = "trendscout.vercel.app"
+
     @field_validator("gemini_model_pool", mode="before")
     @classmethod
     def parse_model_pool(cls, v: str | list[str]) -> list[str]:
