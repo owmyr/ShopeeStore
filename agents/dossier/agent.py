@@ -482,16 +482,36 @@ def generate_dossier(
             }
         )
 
-    # --- Strategic Production Insights ---
-    to_print = [
+    # --- Strategic Production Insights (Strict Mutual Exclusion Rule) ---
+    # Business Rule: A theme can NEVER appear in both "to_print" (O Que Estampar)
+    # and "to_pause" (O Que Pausar).
+    # 1. Identify themes with severe price war / compressed margins (candidates to pause)
+    pause_candidates = [
         t
         for t in themes_data
-        if t["status_key"] == "high_demand_low_comp" or t["daily_velocity"] >= 500
+        if (t["p50"] < 30.0 and t["count"] >= 10)
+        or (t["status_key"] == "high_comp" and t["p50"] < 32.0)
     ]
-    if len(to_print) < 3:
-        to_print = themes_data[:3]
-    else:
-        to_print = to_print[:3]
+    pause_candidates.sort(key=lambda x: (-x["count"], x["p50"]))
+    pause_candidate_names = {t["raw_name"] for t in pause_candidates}
+
+    # 2. Identify themes with high traction AND healthy margins (candidates to print)
+    # Must strictly exclude pause candidates to guarantee no overlap
+    print_candidates = [
+        t
+        for t in themes_data
+        if t["raw_name"] not in pause_candidate_names
+        and (t["p50"] >= 30.0 or t["status_key"] == "high_demand_low_comp")
+    ]
+    print_candidates.sort(
+        key=lambda x: x["daily_velocity"] * max(x["p50"], 1.0), reverse=True
+    )
+
+    if not print_candidates:
+        print_candidates = sorted(themes_data, key=lambda x: x["p50"], reverse=True)
+
+    to_print = print_candidates[:3]
+    selected_print_names = {t["raw_name"] for t in to_print}
 
     to_print_recommendations = []
     for t in to_print:
@@ -510,6 +530,11 @@ def generate_dossier(
             action = (
                 "Maior preço mediano da categoria (R$ 42,29). Foque em grupos atuais e "
                 "estética minimalista/emblema para capturar público disposto a pagar premium."
+            )
+        elif "pets" in name_lower or "animais" in name_lower:
+            action = (
+                "Excelente tração diária. Foque em personalização de raças ou arte "
+                "estilo retrô/vintage para sustentar preços acima de R$ 32,00 com margem protegida."
             )
         elif "rock" in name_lower or "musica" in name_lower:
             action = (
@@ -532,35 +557,44 @@ def generate_dossier(
             }
         )
 
-    to_pause = [
-        t
-        for t in themes_data
-        if t["status_key"] == "high_comp" or (t["count"] >= 15 and t["p50"] < 30.0)
-    ]
-    if not to_pause:
-        sorted_by_margin = sorted(
-            [t for t in themes_data if t["count"] >= 2], key=lambda x: x["p50"]
-        )
-        to_pause = sorted_by_margin[:2]
-    else:
-        to_pause = to_pause[:3]
+    # 3. Finalize to_pause with strict mutual exclusion: exclude all selected_print_names
+    to_pause = [t for t in pause_candidates if t["raw_name"] not in selected_print_names]
+    if len(to_pause) < 3:
+        remaining = [
+            t
+            for t in themes_data
+            if t["raw_name"] not in selected_print_names and t not in to_pause
+        ]
+        remaining.sort(key=lambda x: x["p50"])
+        to_pause.extend(remaining[: 3 - len(to_pause)])
+
+    to_pause = to_pause[:3]
 
     to_pause_recommendations = []
     for t in to_pause:
         name_lower = t["raw_name"].lower()
         if "anime" in name_lower:
             risk = (
-                "Guerra agressiva de preços com 50+ confecções concorrentes. Preço mediano "
-                "travado em R$ 29,99 e margem líquida inferior a 12%."
+                f"Guerra agressiva de preços com {t['count']} confecções concorrentes. "
+                f"Preço mediano travado em {t['p50_brl']} e margem líquida inferior a 12%."
             )
             mitigation = (
                 "Pausar matrizes tradicionais de animes batidos. Só produzir sob encomenda "
                 "ou em kits com estampas exclusivas nas costas."
             )
+        elif "religioso" in name_lower or "cristao" in name_lower:
+            risk = (
+                f"Disputa predatória com {t['count']} confecções concorrentes por centavos. "
+                f"Preço mediano comprimido em {t['p50_brl']}, onde frete e taxas consomem o lucro."
+            )
+            mitigation = (
+                "Suspender tiragens longas de versículos genéricos. Migrar para coleções autorais "
+                "com modelagem premium ou kits familiares."
+            )
         elif "geek" in name_lower:
             risk = (
                 "Saturação de modelos genéricos em poliéster/algodão fino, "
-                "puxando cotação para baixo."
+                f"puxando cotação para baixo ({t['p50_brl']})."
             )
             mitigation = (
                 "Suspender tiragens longas de heróis clássicos. Migrar para paródias "
