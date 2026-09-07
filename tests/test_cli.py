@@ -42,3 +42,19 @@ def test_run_dispatch(monkeypatch, command, expected_force) -> None:
     cli = _load_cli()
     assert cli.main() == 0
     assert calls == [expected_force]
+
+
+def test_export_web_dispatch(monkeypatch, tmp_path) -> None:
+    calls: list = []
+
+    def fake_export(*, report_dir=None, output_dir=None):
+        calls.append(report_dir)
+        return tmp_path / "client_report.json"
+
+    monkeypatch.setattr("core.exporter.export_client_report", fake_export)
+    monkeypatch.setattr(sys, "argv", ["shopee-store", "export-web", "--report-dir", str(tmp_path)])
+
+    cli = _load_cli()
+    assert cli.main() == 0
+    assert len(calls) == 1
+    assert str(calls[0]) == str(tmp_path)

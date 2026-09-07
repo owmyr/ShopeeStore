@@ -1,0 +1,479 @@
+{
+  "meta": {
+    "report_id": "20260906T011030Z",
+    "generated_at": "20260906T011030Z",
+    "period_label": "Semana 36 • Setembro 2026",
+    "marketplace": "Shopee Brasil"
+  },
+  "market_overview": {
+    "monitored_products_count": 497,
+    "printed_products_count": 497,
+    "daily_volume_velocity": 44586.7,
+    "weekly_estimated_volume": 312107,
+    "weekly_estimated_revenue_brl": 11515266.21,
+    "price_benchmark": {
+      "p25": 26.65,
+      "p50": 29.94,
+      "p75": 38.99
+    }
+  },
+  "niches": [
+    {
+      "theme_id": "streetwear",
+      "name": "Streetwear",
+      "rank": 1,
+      "share_pct": 4.4,
+      "daily_velocity": 4452.0,
+      "price_p25_brl": 26.49,
+      "price_p50_brl": 39.15,
+      "price_p75_brl": 48.9,
+      "status_key": "high_demand_low_comp",
+      "status_label": "Alta Procura • Pouca Concorrência",
+      "badge_color": "emerald"
+    },
+    {
+      "theme_id": "religioso-e-cristao",
+      "name": "Religioso E Cristao",
+      "rank": 2,
+      "share_pct": 10.5,
+      "daily_velocity": 3593.0,
+      "price_p25_brl": 19.99,
+      "price_p50_brl": 25.76,
+      "price_p75_brl": 29.99,
+      "status_key": "steady",
+      "status_label": "Mercado Estável",
+      "badge_color": "slate"
+    },
+    {
+      "theme_id": "anime-e-geek",
+      "name": "Anime E Geek",
+      "rank": 3,
+      "share_pct": 14.9,
+      "daily_velocity": 3496.0,
+      "price_p25_brl": 26.9,
+      "price_p50_brl": 29.99,
+      "price_p75_brl": 38.64,
+      "status_key": "steady",
+      "status_label": "Mercado Estável",
+      "badge_color": "slate"
+    },
+    {
+      "theme_id": "geek-e-super-herois",
+      "name": "Geek E Super-Herois",
+      "rank": 4,
+      "share_pct": 4.0,
+      "daily_velocity": 2711.0,
+      "price_p25_brl": 26.9,
+      "price_p50_brl": 28.9,
+      "price_p75_brl": 29.99,
+      "status_key": "steady",
+      "status_label": "Mercado Estável",
+      "badge_color": "slate"
+    },
+    {
+      "theme_id": "pets-e-animais",
+      "name": "Pets E Animais",
+      "rank": 5,
+      "share_pct": 2.8,
+      "daily_velocity": 2698.0,
+      "price_p25_brl": 26.95,
+      "price_p50_brl": 32.0,
+      "price_p75_brl": 40.93,
+      "status_key": "high_demand_low_comp",
+      "status_label": "Alta Procura • Pouca Concorrência",
+      "badge_color": "emerald"
+    },
+    {
+      "theme_id": "k-pop",
+      "name": "K-Pop",
+      "rank": 6,
+      "share_pct": 6.2,
+      "daily_velocity": 2190.0,
+      "price_p25_brl": 29.9,
+      "price_p50_brl": 42.29,
+      "price_p75_brl": 43.88,
+      "status_key": "high_demand_low_comp",
+      "status_label": "Alta Procura • Pouca Concorrência",
+      "badge_color": "emerald"
+    },
+    {
+      "theme_id": "setembro-amarelo",
+      "name": "Setembro Amarelo",
+      "rank": 7,
+      "share_pct": 0.6,
+      "daily_velocity": 1290.0,
+      "price_p25_brl": 22.9,
+      "price_p50_brl": 22.9,
+      "price_p75_brl": 29.9,
+      "status_key": "steady",
+      "status_label": "Mercado Estável",
+      "badge_color": "slate"
+    },
+    {
+      "theme_id": "frutas-e-flores",
+      "name": "Frutas E Flores",
+      "rank": 8,
+      "share_pct": 0.8,
+      "daily_velocity": 1201.0,
+      "price_p25_brl": 26.9,
+      "price_p50_brl": 28.64,
+      "price_p75_brl": 29.9,
+      "status_key": "steady",
+      "status_label": "Mercado Estável",
+      "badge_color": "slate"
+    },
+    {
+      "theme_id": "nostalgia",
+      "name": "Nostalgia",
+      "rank": 9,
+      "share_pct": 1.4,
+      "daily_velocity": 1077.0,
+      "price_p25_brl": 29.44,
+      "price_p50_brl": 29.9,
+      "price_p75_brl": 38.64,
+      "status_key": "steady",
+      "status_label": "Mercado Estável",
+      "badge_color": "slate"
+    },
+    {
+      "theme_id": "politica",
+      "name": "Politica",
+      "rank": 10,
+      "share_pct": 1.6,
+      "daily_velocity": 926.7,
+      "price_p25_brl": 29.9,
+      "price_p50_brl": 29.94,
+      "price_p75_brl": 30.49,
+      "status_key": "steady",
+      "status_label": "Mercado Estável",
+      "badge_color": "slate"
+    }
+  ],
+  "breakout_prints": [
+    {
+      "id": 58214184646,
+      "title": "Kit 3 Camisetas Femininas Estampadas Corações Tendência Moda 100% Algodão",
+      "theme_name": "Pets E Animais",
+      "price_brl": 62.9,
+      "sold_count": 1000,
+      "daily_velocity": 1000.0,
+      "velocity_label": "+1.000 peças/dia",
+      "image_url": "/images/prints/58214184646.webp",
+      "audit": {
+        "corte_modelagem": "Kit Promocional Multi-peças",
+        "malha_sugerida": "100% Algodão 30.1 Penteado (Toque Macio)",
+        "tecnica_estampa": "DTF Têxtil Digital Frontal (Toque Zero)",
+        "estimativa_margem": "Margem Elevada (~52% a 62%)"
+      }
+    },
+    {
+      "id": 58264549437,
+      "title": "Kit 3 Camisetas Masculinas Estampadas \"Bos Básico\" Algodão Premium Fio 30.1, Casual e Confortáveis",
+      "theme_name": "Geral / Moda",
+      "price_brl": 58.9,
+      "sold_count": 916,
+      "daily_velocity": 916.0,
+      "velocity_label": "+916 peças/dia",
+      "image_url": "/images/prints/58264549437.webp",
+      "audit": {
+        "corte_modelagem": "Kit Promocional Multi-peças",
+        "malha_sugerida": "100% Algodão 30.1 Penteado (Toque Macio)",
+        "tecnica_estampa": "DTF Têxtil Digital Frontal (Toque Zero)",
+        "estimativa_margem": "Margem Elevada (~52% a 62%)"
+      }
+    },
+    {
+      "id": 22195084499,
+      "title": "kit 3 peças camisetas masculina Estampada NY Algodão Premium Alta Qualidade Camisa 100% Algodão",
+      "theme_name": "Streetwear",
+      "price_brl": 54.84,
+      "sold_count": 819,
+      "daily_velocity": 819.0,
+      "velocity_label": "+819 peças/dia",
+      "image_url": "/images/prints/22195084499.webp",
+      "audit": {
+        "corte_modelagem": "Kit Promocional Multi-peças",
+        "malha_sugerida": "100% Algodão 30.1 Penteado (Toque Macio)",
+        "tecnica_estampa": "DTF Têxtil Digital Frontal (Toque Zero)",
+        "estimativa_margem": "Margem Sadia (~40% a 50%)"
+      }
+    },
+    {
+      "id": 58212392312,
+      "title": "Kit 3 Camisetas Masculinas Estampadas \"Bos Básico\" Algodão Premium Fio 30.1 Casual e Confortáveis",
+      "theme_name": "Geral / Moda",
+      "price_brl": 59.17,
+      "sold_count": 802,
+      "daily_velocity": 802.0,
+      "velocity_label": "+802 peças/dia",
+      "image_url": "/images/prints/58212392312.webp",
+      "audit": {
+        "corte_modelagem": "Kit Promocional Multi-peças",
+        "malha_sugerida": "100% Algodão 30.1 Penteado (Toque Macio)",
+        "tecnica_estampa": "DTF Têxtil Digital Frontal (Toque Zero)",
+        "estimativa_margem": "Margem Elevada (~52% a 62%)"
+      }
+    },
+    {
+      "id": 58264947613,
+      "title": "Kit 3 Camiseta Streetwear Estampa California 77 Unissex 100% Algodão Fio 30.1 Casual Top Envio Imediato",
+      "theme_name": "Streetwear",
+      "price_brl": 48.9,
+      "sold_count": 760,
+      "daily_velocity": 760.0,
+      "velocity_label": "+760 peças/dia",
+      "image_url": "/images/prints/58264947613.webp",
+      "audit": {
+        "corte_modelagem": "Oversized Streetwear (Caimento Amplo)",
+        "malha_sugerida": "100% Algodão 30.1 Penteado (Toque Macio)",
+        "tecnica_estampa": "DTF Têxtil Digital Frontal (Toque Zero)",
+        "estimativa_margem": "Margem Sadia (~40% a 50%)"
+      }
+    },
+    {
+      "id": 58214767280,
+      "title": "Kit 2 Camisas básicas Feminina Baby Look Estampadas 100% Algodão - Blusa Blusinha Manga Curta Várias Cores",
+      "theme_name": "Geral / Moda",
+      "price_brl": 38.99,
+      "sold_count": 731,
+      "daily_velocity": 731.0,
+      "velocity_label": "+731 peças/dia",
+      "image_url": "/images/prints/58214767280.webp",
+      "audit": {
+        "corte_modelagem": "Baby Look / T-Shirt Feminina Ajustada",
+        "malha_sugerida": "100% Algodão 30.1 Penteado (Toque Macio)",
+        "tecnica_estampa": "DTF Têxtil Digital Frontal (Toque Zero)",
+        "estimativa_margem": "Margem Sadia (~40% a 50%)"
+      }
+    },
+    {
+      "id": 58263337823,
+      "title": "Kit 2 Camisetas Masculinas Estampadas Bo.o Algodão Premium Fio 30.1, Casual e Confortáveis",
+      "theme_name": "Geral / Moda",
+      "price_brl": 42.9,
+      "sold_count": 667,
+      "daily_velocity": 667.0,
+      "velocity_label": "+667 peças/dia",
+      "image_url": "/images/prints/58263337823.webp",
+      "audit": {
+        "corte_modelagem": "Kit Promocional Multi-peças",
+        "malha_sugerida": "100% Algodão 30.1 Penteado (Toque Macio)",
+        "tecnica_estampa": "DTF Têxtil Digital Frontal (Toque Zero)",
+        "estimativa_margem": "Margem Sadia (~40% a 50%)"
+      }
+    },
+    {
+      "id": 58262739085,
+      "title": "Camiseta masculina de manga curta 100% algodão, estampa Popeye retrô estilo streetwear casual",
+      "theme_name": "Nostalgia",
+      "price_brl": 62.72,
+      "sold_count": 622,
+      "daily_velocity": 622.0,
+      "velocity_label": "+622 peças/dia",
+      "image_url": "/images/prints/58262739085.webp",
+      "audit": {
+        "corte_modelagem": "Oversized Streetwear (Caimento Amplo)",
+        "malha_sugerida": "100% Algodão 30.1 Penteado (Toque Macio)",
+        "tecnica_estampa": "Silk Screen Corrosão / Efeito Estonado",
+        "estimativa_margem": "Margem Elevada (~52% a 62%)"
+      }
+    },
+    {
+      "id": 58264830481,
+      "title": "Camiseta Feminina Estampada Setembro Amarelo | Frase de Força e Apoio",
+      "theme_name": "Setembro Amarelo",
+      "price_brl": 29.9,
+      "sold_count": 605,
+      "daily_velocity": 605.0,
+      "velocity_label": "+605 peças/dia",
+      "image_url": "/images/prints/58264830481.webp",
+      "audit": {
+        "corte_modelagem": "Baby Look / T-Shirt Feminina Ajustada",
+        "malha_sugerida": "100% Algodão Meia Malha Padrão",
+        "tecnica_estampa": "DTF Têxtil Digital Frontal (Toque Zero)",
+        "estimativa_margem": "Margem Moderada (~30% a 38%)"
+      }
+    },
+    {
+      "id": 58212388843,
+      "title": "Kit 3 Camisetas Masculinas Estampadas \"Bos Básico\" Algodão Premium Fio 30.1, Casual e Confortáveis",
+      "theme_name": "Geral / Moda",
+      "price_brl": 59.17,
+      "sold_count": 585,
+      "daily_velocity": 585.0,
+      "velocity_label": "+585 peças/dia",
+      "image_url": "/images/prints/58212388843.webp",
+      "audit": {
+        "corte_modelagem": "Kit Promocional Multi-peças",
+        "malha_sugerida": "100% Algodão 30.1 Penteado (Toque Macio)",
+        "tecnica_estampa": "DTF Têxtil Digital Frontal (Toque Zero)",
+        "estimativa_margem": "Margem Elevada (~52% a 62%)"
+      }
+    },
+    {
+      "id": 58264238163,
+      "title": "Kit 2 Camiseta Masculina Estampada Boston 100% Algodão Fio 30.1 Premium Camisa Estilosa",
+      "theme_name": "Streetwear",
+      "price_brl": 39.15,
+      "sold_count": 574,
+      "daily_velocity": 574.0,
+      "velocity_label": "+574 peças/dia",
+      "image_url": "/images/prints/58264238163.webp",
+      "audit": {
+        "corte_modelagem": "Kit Promocional Multi-peças",
+        "malha_sugerida": "100% Algodão 30.1 Penteado (Toque Macio)",
+        "tecnica_estampa": "DTF Têxtil Digital Frontal (Toque Zero)",
+        "estimativa_margem": "Margem Sadia (~40% a 50%)"
+      }
+    },
+    {
+      "id": 58213267011,
+      "title": "Camiseta T-shirt Cereja Moda Unissex Estampada 100% Algodão 30.01",
+      "theme_name": "Frutas E Flores",
+      "price_brl": 26.9,
+      "sold_count": 532,
+      "daily_velocity": 532.0,
+      "velocity_label": "+532 peças/dia",
+      "image_url": "/images/prints/58213267011.webp",
+      "audit": {
+        "corte_modelagem": "Baby Look / T-Shirt Feminina Ajustada",
+        "malha_sugerida": "100% Algodão 30.1 Penteado (Toque Macio)",
+        "tecnica_estampa": "DTF Têxtil Digital Frontal (Toque Zero)",
+        "estimativa_margem": "Margem Comprimida (~18% a 25%)"
+      }
+    },
+    {
+      "id": 58214088348,
+      "title": "Camiseta Oversized Legacy Season Ganley Streetwear Academia 100% Algodão Camisa Estampada Casual Premium Gym",
+      "theme_name": "Geral / Moda",
+      "price_brl": 38.99,
+      "sold_count": 517,
+      "daily_velocity": 517.0,
+      "velocity_label": "+517 peças/dia",
+      "image_url": "/images/prints/58214088348.webp",
+      "audit": {
+        "corte_modelagem": "Oversized Streetwear (Caimento Amplo)",
+        "malha_sugerida": "100% Algodão 30.1 Penteado (Toque Macio)",
+        "tecnica_estampa": "DTF Têxtil Digital Frontal (Toque Zero)",
+        "estimativa_margem": "Margem Sadia (~40% a 50%)"
+      }
+    },
+    {
+      "id": 58265344748,
+      "title": "Kit 3 Camisetas Femininas Estampadas Corações Tendência Moda 100% Algodão",
+      "theme_name": "Pets E Animais",
+      "price_brl": 59.8,
+      "sold_count": 501,
+      "daily_velocity": 501.0,
+      "velocity_label": "+501 peças/dia",
+      "image_url": "/images/prints/58265344748.webp",
+      "audit": {
+        "corte_modelagem": "Kit Promocional Multi-peças",
+        "malha_sugerida": "100% Algodão 30.1 Penteado (Toque Macio)",
+        "tecnica_estampa": "DTF Têxtil Digital Frontal (Toque Zero)",
+        "estimativa_margem": "Margem Elevada (~52% a 62%)"
+      }
+    },
+    {
+      "id": 58264414401,
+      "title": "Kit 2 Camisetas Estampadas Masculinas 100% Algodão Fio 30.1 Camisa Blusa Lançamento Alta Qualidade",
+      "theme_name": "Geral / Moda",
+      "price_brl": 44.48,
+      "sold_count": 499,
+      "daily_velocity": 499.0,
+      "velocity_label": "+499 peças/dia",
+      "image_url": "/images/prints/58264414401.webp",
+      "audit": {
+        "corte_modelagem": "Kit Promocional Multi-peças",
+        "malha_sugerida": "100% Algodão 30.1 Penteado (Toque Macio)",
+        "tecnica_estampa": "DTF Têxtil Digital Frontal (Toque Zero)",
+        "estimativa_margem": "Margem Sadia (~40% a 50%)"
+      }
+    }
+  ],
+  "fabric_radar": [
+    {
+      "name": "Algodão 30.1 / Penteado",
+      "count": 274,
+      "share_pct": 55.1,
+      "highlight": "Padrão ouro em malharia",
+      "comment": "Presente na maioria absoluta dos líderes de giro, garantindo percepção de qualidade."
+    },
+    {
+      "name": "Modelagem Oversized / Streetwear",
+      "count": 211,
+      "share_pct": 42.5,
+      "highlight": "Corte de maior valor percebido",
+      "comment": "Permite ticket médio superior (R$ 39 a R$ 65) e alta tração no público jovem."
+    },
+    {
+      "name": "Kits Promocionais (2 a 5 Peças)",
+      "count": 55,
+      "share_pct": 11.1,
+      "highlight": "Alavanca de ticket médio",
+      "comment": "Amortiza o frete por pedido e maximiza a receita bruta por transação."
+    },
+    {
+      "name": "Estampa Costas / DTF Digital",
+      "count": 26,
+      "share_pct": 5.2,
+      "highlight": "Composição visual predominante",
+      "comment": "Frente minimalista combinada com arte dorsal ampla tem a maior taxa de conversão."
+    },
+    {
+      "name": "Gola Ribana / Canelada",
+      "count": 14,
+      "share_pct": 2.8,
+      "highlight": "Acabamento estruturado",
+      "comment": "Golas caneladas fechadas aumentam durabilidade pós-lavagem e minimizam devoluções."
+    }
+  ],
+  "directives": {
+    "to_print": [
+      {
+        "theme_id": "streetwear",
+        "name": "Streetwear",
+        "p50_brl": 39.15,
+        "daily_velocity": 4452.0,
+        "action": "Lotes prioritários em corte Oversized e malha 30.1. Alta demanda acima de R$ 39,00."
+      },
+      {
+        "theme_id": "k-pop",
+        "name": "K-Pop",
+        "p50_brl": 42.29,
+        "daily_velocity": 2190.0,
+        "action": "Nicho de maior valor mediano (R$ 42+). Foque em emblemas elegantes e lançamentos."
+      },
+      {
+        "theme_id": "pets-e-animais",
+        "name": "Pets E Animais",
+        "p50_brl": 32.0,
+        "daily_velocity": 2698.0,
+        "action": "Excelente giro diário. Aposte em estampas retrô de raças e frases afetivas."
+      }
+    ],
+    "to_pause": [
+      {
+        "theme_id": "setembro-amarelo",
+        "name": "Setembro Amarelo",
+        "p50_brl": 22.9,
+        "reason": "Preço mediano comprimido em R$ 22.90 com múltiplos concorrentes diretos.",
+        "mitigation": "Suspender produção de estoque e repor exclusivamente sob demanda confirmada."
+      },
+      {
+        "theme_id": "religioso-e-cristao",
+        "name": "Religioso E Cristao",
+        "p50_brl": 25.76,
+        "reason": "Preço mediano comprimido em R$ 25.76 com múltiplos concorrentes diretos.",
+        "mitigation": "Suspender produção de estoque e repor exclusivamente sob demanda confirmada."
+      },
+      {
+        "theme_id": "anime-e-geek",
+        "name": "Anime E Geek",
+        "p50_brl": 29.99,
+        "reason": "Guerra de preços predatória em matrizes comuns. Mediana travada em R$ 29.99.",
+        "mitigation": "Pausar tiragens abertas. Produzir apenas estampas exclusivas sob encomenda."
+      }
+    ]
+  }
+}

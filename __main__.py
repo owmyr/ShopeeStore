@@ -35,6 +35,13 @@ def main() -> int:
     leads_parser = sub.add_parser("leads", help="discover and enrich merchant leads")
     leads_parser.add_argument("--max", type=int, default=50, help="max shops to process")
     leads_parser.add_argument("--no-enrich", action="store_true", help="skip BrasilAPI calls")
+
+    export_parser = sub.add_parser(
+        "export-web", help="export sanitized public intelligence for web portal"
+    )
+    export_parser.add_argument(
+        "--report-dir", type=str, default=None, help="path to specific report directory"
+    )
     args = parser.parse_args()
 
     if args.command in ("run", "run-now"):
@@ -103,6 +110,16 @@ def main() -> int:
 
         count = leads_once(max_shops=args.max, enrich_cnpj=not args.no_enrich)
         print(f"processed {count} shop leads")
+        return 0
+
+    if args.command == "export-web":
+        from pathlib import Path
+
+        from core.exporter import export_client_report
+
+        report_dir = Path(args.report_dir) if args.report_dir else None
+        out = export_client_report(report_dir=report_dir)
+        print(f"client report exported to: {out}")
         return 0
 
     return 1
