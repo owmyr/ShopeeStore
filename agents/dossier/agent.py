@@ -627,9 +627,10 @@ def generate_dossier(
 
     # --- Subscription Callout & Web Portal ---
     settings = get_settings()
-    portal_url = getattr(settings, "portal_url", "https://trendscout.vercel.app")
-    portal_display_url = getattr(settings, "portal_display_url", "trendscout.vercel.app")
+    portal_url = getattr(settings, "portal_url", "https://trendscout-orcin.vercel.app")
+    portal_display_url = getattr(settings, "portal_display_url", "trendscout-orcin.vercel.app")
     portal_qr_base64 = _generate_qr_base64(portal_url)
+
 
     subscription_info = {
         "title": "PORTAL WEB & CLUBE VIP • RADAR SEMANAL DE ESTAMPARIA",

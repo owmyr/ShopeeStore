@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from agents.dossier import generate_dossier, generate_theme_card
+from core.config import get_settings
 
 
 def test_generate_dossier_html_only(tmp_path: Path):
@@ -414,9 +415,10 @@ def test_generate_dossier_comprehensive_intelligence(tmp_path: Path):
 
     # Monthly Subscription Callout & Web Portal
     assert "PORTAL WEB" in html
-    assert "trendscout.vercel.app" in html
+    assert get_settings().portal_display_url in html
     assert "R$ 97,00 / mês" in html
     assert "Assine respondendo no chat" in html
+
 
 
 def test_strategic_production_mutual_exclusion(tmp_path: Path):
