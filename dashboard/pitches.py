@@ -33,13 +33,20 @@ def generate_shopee_followup_pitch(lead: StoreLead) -> str:
 
     Why: Once the merchant signals interest, this pitch transitions to the commercial value
     proposition of the recurring weekly intelligence subscription delivered on direct channels.
+    Highlights the PDF dossier, VIP unlocked portal access, and printable art packs.
     Strictly avoids forbidden trigger words like 'WhatsApp' or 'Pix' to prevent chat censorship.
     """
+    settings = get_settings()
+    portal_display = getattr(settings, "portal_display_url", "trendscout-shopee.vercel.app")
     return (
-        f"Show de bola, {lead.shop_name}! O relatório semanal sai toda segunda-feira às 07h "
-        "com o ranking dos 10 maiores nichos, auditoria das 12 estampas que mais aceleraram e "
-        "diretrizes de produção. A assinatura mensal se paga no primeiro lote.\n\n"
-        "Qual o melhor e-mail ou canal de contato de vocês para eu enviar as opções do plano?"
+        f"Show de bola, {lead.shop_name}! No plano de assinatura mensal (R$ 97/mês) você recebe:\n"
+        "1. Dossiê executivo em PDF toda segunda-feira às 07h com links diretos dos "
+        "concorrentes;\n"
+        f"2. Acesso VIP irrestrito ao portal web em {portal_display} com todas as 15 estampas "
+        "desbloqueadas, fichas fabris completas e margens de todos os nichos;\n"
+        "3. Pack com matrizes prontas para gravação de tela e DTF digital.\n\n"
+        "Qual o melhor e-mail ou contato direto de vocês para eu enviar as opções de "
+        "ativação do clube?"
     )
 
 

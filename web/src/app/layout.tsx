@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import { VipProvider } from "@/context/VipContext";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -36,7 +37,8 @@ export const viewport: Viewport = {
 };
 
 /**
- * Root layout component providing theme tokens, font loading, and global styles.
+ * Root layout component providing theme tokens, font loading, global styles,
+ * and freemium/VIP context provisioning.
  *
  * @param props Root layout children
  * @returns JSX.Element
@@ -49,7 +51,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${plusJakartaSans.variable} dark`}>
       <body className="min-h-screen bg-[#030712] text-slate-100 antialiased selection:bg-emerald-500 selection:text-slate-950">
-        {children}
+        <VipProvider>{children}</VipProvider>
       </body>
     </html>
   );

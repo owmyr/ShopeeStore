@@ -2,33 +2,45 @@
 
 import React, { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Sparkles, Check, MessageSquare, ShieldCheck, Zap } from "lucide-react";
+import { X, Sparkles, Check, MessageSquare, ShieldCheck, KeyRound } from "lucide-react";
+import { useVip } from "@/context/VipContext";
 
 /**
  * Props definition for CheckoutModal.
  */
 interface CheckoutModalProps {
-  /** Controls open/closed visibility state */
-  isOpen: boolean;
-  /** Callback triggered to close modal */
-  onClose: () => void;
+  /** Optional override for open/closed visibility state */
+  isOpen?: boolean;
+  /** Optional override callback triggered to close modal */
+  onClose?: () => void;
 }
 
 /**
  * VIP Conversion modal with direct WhatsApp activation link.
  * Targets garment manufacturers with high-value weekly intelligence at R$ 97/month.
+ * Adapts messaging to include the target item clicked by the user (e.g. print title or feature).
  *
  * @param props CheckoutModalProps
  * @returns JSX.Element | null
  */
 export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps): React.JSX.Element | null {
+  const {
+    isCheckoutModalOpen,
+    closeCheckoutModal,
+    openUnlockModal,
+    selectedTargetItem,
+  } = useVip();
+
+  const isModalOpen = isOpen !== undefined ? isOpen : isCheckoutModalOpen;
+  const handleClose = onClose || closeCheckoutModal;
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        handleClose();
       }
     };
-    if (isOpen) {
+    if (isModalOpen) {
       window.addEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "hidden";
     }
@@ -36,12 +48,15 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps): React.JS
       window.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "unset";
     };
-  }, [isOpen, onClose]);
+  }, [isModalOpen, handleClose]);
 
-  if (!isOpen) return null;
+  if (!isModalOpen) return null;
 
-  const whatsappUrl =
-    "https://wa.me/5511999999999?text=Ol%C3%A1!%20Acessei%20o%20portal%20TrendScout%20e%20quero%20assinar%20o%20Radar%20Semanal%20de%20Estampas";
+  const baseMessage = selectedTargetItem
+    ? `Olá! Acessei o portal TrendScout e tenho interesse em desbloquear o item "${selectedTargetItem}" no Clube VIP.`
+    : "Olá! Acessei o portal TrendScout e quero assinar o Radar Semanal de Estampas";
+
+  const whatsappUrl = `https://wa.me/5511999999999?text=${encodeURIComponent(baseMessage)}`;
 
   const benefits = [
     "Radar Semanal Antecipado: novas estampas antes de saturarem na Shopee",
@@ -59,7 +74,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps): React.JS
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={onClose}
+          onClick={handleClose}
           className="fixed inset-0 bg-black/80 backdrop-blur-md"
           aria-hidden="true"
         />
@@ -78,7 +93,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps): React.JS
           {/* Close button */}
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Fechar checkout"
             className="absolute right-4 top-4 rounded-xl border border-white/[0.08] bg-white/[0.04] p-2 text-slate-400 transition-colors hover:bg-white/[0.1] hover:text-white"
           >
@@ -97,7 +112,14 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps): React.JS
             Assine o Radar Semanal de Estampas
           </h3>
 
-          <p className="mt-1.5 text-xs text-slate-300">
+          {selectedTargetItem && (
+            <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-300 max-w-full">
+              <span className="text-slate-400 flex-shrink-0">Item selecionado:</span>
+              <span className="text-white font-semibold truncate">{selectedTargetItem}</span>
+            </div>
+          )}
+
+          <p className="mt-2 text-xs text-slate-300">
             Tenha acesso completo a todos os modelos auditados, relatórios detalhados e diretrizes antecipadas toda segunda-feira.
           </p>
 
@@ -143,6 +165,18 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps): React.JS
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
               <span>Ativação imediata • Fale direto com o curador</span>
             </div>
+          </div>
+
+          {/* Option for existing subscribers */}
+          <div className="mt-5 border-t border-white/[0.08] pt-4 text-center">
+            <button
+              type="button"
+              onClick={() => openUnlockModal()}
+              className="inline-flex items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-amber-300 hover:underline"
+            >
+              <KeyRound className="h-3.5 w-3.5 text-amber-400" />
+              <span>Já tem uma chave de acesso? Digite aqui</span>
+            </button>
           </div>
         </motion.div>
       </div>

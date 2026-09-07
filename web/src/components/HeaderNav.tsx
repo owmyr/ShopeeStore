@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Activity, ShieldCheck } from "lucide-react";
+import { Sparkles, Activity, LogOut } from "lucide-react";
+import { useVip } from "@/context/VipContext";
 
 /**
  * HeaderNav component props definition.
@@ -9,18 +10,25 @@ import { Sparkles, Activity, ShieldCheck } from "lucide-react";
 interface HeaderNavProps {
   /** Label indicating the audit run batch and calendar week */
   edition: string;
-  /** Callback triggered to reveal the VIP subscription drawer or modal */
-  onOpenVipModal: () => void;
+  /** Optional legacy callback for opening the VIP drawer or modal */
+  onOpenVipModal?: () => void;
 }
 
 /**
  * Sticky application header adhering to Google Antigravity Premium glass design.
- * Provides live telemetry status, brand recognition, and conversion entry point.
+ * Provides live telemetry status, brand recognition, and freemium/VIP authentication controls.
  *
  * @param props HeaderNavProps configuration
  * @returns JSX.Element
  */
-export function HeaderNav({ edition, onOpenVipModal }: HeaderNavProps): React.JSX.Element {
+export function HeaderNav({ edition }: HeaderNavProps): React.JSX.Element {
+  const {
+    isVip,
+    deactivateVip,
+    openUnlockModal,
+    openCheckoutModal,
+  } = useVip();
+
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/[0.08] bg-slate-950/75 backdrop-blur-xl transition-colors">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
@@ -59,16 +67,42 @@ export function HeaderNav({ edition, onOpenVipModal }: HeaderNavProps): React.JS
           <span className="text-slate-300 font-mono text-[11px]">{edition}</span>
         </div>
 
-        {/* Action button */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onOpenVipModal}
-            className="group relative inline-flex items-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 px-4 py-2 text-xs sm:text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/20 transition-all duration-200 hover:scale-[1.02] hover:shadow-emerald-500/35 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-950"
-          >
-            <Sparkles className="h-4 w-4 transition-transform group-hover:rotate-12" aria-hidden="true" />
-            <span>Acessar Clube VIP</span>
-          </button>
+        {/* Authentication & VIP State actions */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {isVip ? (
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/15 px-3 py-1.5 text-xs font-extrabold text-amber-300 shadow-glow">
+                <span>⭐</span> CLUBE VIP ATIVO
+              </span>
+              <button
+                type="button"
+                onClick={deactivateVip}
+                title="Sair do Clube VIP neste navegador"
+                className="flex items-center gap-1 rounded-lg border border-white/[0.1] bg-white/[0.04] px-2.5 py-1.5 text-xs font-medium text-slate-400 transition-colors hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-300"
+              >
+                <LogOut className="h-3 w-3" />
+                <span>Sair</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={openUnlockModal}
+                className="rounded-xl border border-white/[0.12] bg-white/[0.04] px-3 py-2 text-xs font-medium text-slate-300 transition-colors hover:bg-white/[0.08] hover:text-white"
+              >
+                Já sou Assinante
+              </button>
+              <button
+                type="button"
+                onClick={() => openCheckoutModal()}
+                className="group relative inline-flex items-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/20 transition-all duration-200 hover:scale-[1.02] hover:shadow-emerald-500/35 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-950"
+              >
+                <Sparkles className="h-4 w-4 transition-transform group-hover:rotate-12" aria-hidden="true" />
+                <span>Assinar Clube VIP (R$ 97/mês)</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

@@ -150,8 +150,8 @@ def test_shopee_followup_pitch():
     followup = generate_shopee_followup_pitch(lead)
     assert "Geek Tees" in followup
     assert "assinatura mensal" in followup
-    assert "ranking dos 10 maiores nichos" in followup
-    assert "Qual o melhor e-mail ou canal de contato de vocês" in followup
+    assert "Acesso VIP irrestrito ao portal web" in followup
+    assert "Qual o melhor e-mail ou contato direto de vocês" in followup
 
     # Strictly no prohibited platform evasion triggers in followup
     assert "whatsapp" not in followup.lower()
