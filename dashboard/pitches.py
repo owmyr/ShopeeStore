@@ -89,3 +89,40 @@ def generate_instagram_url(handle: str) -> str:
     if handle.startswith("@"):
         handle = handle[1:]
     return f"https://ig.me/m/{handle}"
+
+
+def generate_subscriber_delivery_message(
+    lead: StoreLead,
+    edition_date: str | None = None,
+    portal_url: str | None = None,
+) -> str:
+    """Generate a respectful, highly professional WhatsApp delivery message for active subscribers.
+
+    Why: Automates the 1-click weekly dispatch to paid subscribers with verified deliverables
+    and personal access credentials while honoring executive B2B communication standards.
+    """
+    shop_name = lead.shop_name or "Parceiro"
+    if portal_url is None:
+        settings = get_settings()
+        portal_display = getattr(settings, "portal_url", None) or getattr(
+            settings, "portal_display_url", "trendscout-shopee.vercel.app"
+        )
+        portal_url = (
+            portal_display
+            if portal_display.startswith("http")
+            else f"https://{portal_display}"
+        )
+
+    date_suffix = f" ({edition_date})" if edition_date else ""
+    return (
+        f"Fala {shop_name}! Tudo bem?\n\n"
+        f"Aqui é da equipe TrendScout. Seu material da semana{date_suffix} "
+        "já está pronto e liberado:\n\n"
+        "1. Dossiê Executivo da Semana (PDF anexo abaixo);\n"
+        "2. Pack de Estampas & Fichas Técnicas para DTF/Silk (ZIP anexo);\n"
+        "3. Seu acesso VIP exclusivo ao portal web:\n"
+        f"{portal_url}?vip=TS-VIP-2026\n\n"
+        "Qualquer dúvida no planejamento das estampas desta semana, só chamar por aqui. "
+        "Boas vendas na produção!"
+    )
+

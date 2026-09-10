@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Sparkles, ArrowRight, ShieldCheck, Zap } from "lucide-react";
+import { Sparkles, ArrowRight, ShieldCheck, Zap, Download } from "lucide-react";
 import type { ClientReportPayload } from "@/types/intelligence";
 import { FALLBACK_CLIENT_REPORT } from "@/lib/fallback-data";
 import { normalizeClientReport } from "@/lib/normalize-report";
@@ -95,9 +95,18 @@ export default function Home(): React.JSX.Element {
           <section className="glass-panel relative overflow-hidden rounded-3xl p-8 sm:p-10 border-emerald-500/20 bg-gradient-to-r from-emerald-950/40 via-slate-900/80 to-indigo-950/40">
             <div className="relative z-10 flex flex-col items-center justify-between gap-6 text-center lg:flex-row lg:text-left">
               <div>
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-300">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  ACESSO COMPLETO ANTECIPADO
+                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2">
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-300">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    ACESSO COMPLETO ANTECIPADO
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openCheckoutModal("Pack de Matrizes e Fichas de Estamparia")}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 hover:bg-amber-400/20 px-3 py-1 text-xs font-bold text-amber-300 transition-all cursor-pointer"
+                  >
+                    <span>📦 Pack com Matrizes & Fichas de Estamparia (Exclusivo VIP)</span>
+                  </button>
                 </div>
                 <h2 className="mt-2 text-2xl sm:text-3xl font-bold text-white">
                   Pronto para colocar sua confecção à frente do mercado?
@@ -122,7 +131,7 @@ export default function Home(): React.JSX.Element {
           </section>
         ) : (
           <section className="glass-panel relative overflow-hidden rounded-3xl p-8 border-amber-500/30 bg-gradient-to-r from-amber-950/30 via-slate-900/80 to-slate-900/80">
-            <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-6">
               <div>
                 <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/20 border border-amber-400/40 px-3 py-1 text-xs font-bold text-amber-300">
                   <span>⭐</span>
@@ -131,10 +140,19 @@ export default function Home(): React.JSX.Element {
                 <h2 className="mt-2 text-xl sm:text-2xl font-bold text-white">
                   Você possui acesso irrestrito ao Radar Semanal
                 </h2>
-                <p className="mt-1 text-xs sm:text-sm text-slate-300">
-                  Todas as 12 estampas em tração diária, diretrizes completas de maquinário e réguas de preço estão liberadas neste dispositivo.
+                <p className="mt-1 text-xs sm:text-sm text-slate-300 max-w-xl">
+                  Todas as 12 estampas em tração diária, diretrizes completas de maquinário, réguas de preço e download do pack de matrizes estão liberados neste dispositivo.
                 </p>
               </div>
+
+              <a
+                href="/downloads/pack_estampas_semana.zip"
+                download="pack_estampas_semana.zip"
+                className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 px-5 py-3.5 text-xs sm:text-sm font-extrabold text-slate-950 shadow-xl shadow-emerald-500/25 transition-transform hover:scale-105 active:scale-95 flex-shrink-0"
+              >
+                <Download className="h-4 w-4 text-slate-950" />
+                <span>📥 Baixar Pack Semanal de Estampas (ZIP)</span>
+              </a>
             </div>
             <div className="absolute -right-12 -bottom-12 h-44 w-44 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
           </section>

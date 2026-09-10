@@ -16,6 +16,7 @@ from PIL import Image
 from core.exporter import (
     FORBIDDEN_LEAK_KEYS,
     _validate_zero_leakage,
+    calculate_unit_economics,
     compute_directives,
     compute_fabric_radar,
     create_svg_placeholder,
@@ -314,3 +315,95 @@ def test_create_svg_placeholder(tmp_path: Path):
     long_svg = tmp_path / "long.svg"
     create_svg_placeholder(long_svg, "A" * 50)
     assert "..." in long_svg.read_text(encoding="utf-8")
+
+
+def test_calculate_unit_economics_risk_single_item():
+    """Verify low-ticket items (< R$ 30) trigger risk_single_item and bundle recommendation."""
+    # R$ 24.90
+    econ = calculate_unit_economics(2490, "anime e geek")
+    assert econ["price_brl"] == 24.90
+    assert econ["shopee_commission_pct"] == 20.0
+    assert econ["shopee_commission_brl"] == 4.98
+    assert econ["shopee_fixed_fee_brl"] == 4.00
+    assert econ["blank_shirt_cost_brl"] == 14.00
+    assert econ["print_cost_brl"] == 7.00
+    assert econ["packaging_tax_brl"] == 2.45
+    assert econ["total_cost_fees_brl"] == 32.43
+    assert econ["net_profit_brl"] == -7.53
+    assert econ["net_margin_pct"] == -30.2
+    assert econ["status"] == "risk_single_item"
+    assert "Alerta: Venda unitária com margem comprimida" in econ["recommendation"]
+    assert "KITS de 2 ou 3 peças" in econ["recommendation"]
+
+
+def test_calculate_unit_economics_tight():
+    """Verify mid-priced items (R$ 38 - R$ 42) are classified as tight margin."""
+    # R$ 39.90
+    econ = calculate_unit_economics(3990, "streetwear")
+    assert econ["price_brl"] == 39.90
+    assert econ["shopee_commission_brl"] == 7.98
+    assert econ["shopee_fixed_fee_brl"] == 4.00
+    assert econ["blank_shirt_cost_brl"] == 14.00
+    assert econ["print_cost_brl"] == 7.00
+    assert econ["packaging_tax_brl"] == 3.20
+    assert econ["total_cost_fees_brl"] == 36.18
+    assert econ["net_profit_brl"] == 3.72
+    assert econ["status"] == "tight"
+    assert "Venda unitária viável com controle rígido de insumos" in econ["recommendation"]
+    # Kit 2 simulation significantly expands margin
+    assert econ["kit_simulated_profit_brl"] > econ["net_profit_brl"]
+    assert econ["kit_simulated_profit_brl"] == 8.16
+
+
+def test_calculate_unit_economics_viable():
+    """Verify premium items (R$ 55+) achieve healthy single-item net margins."""
+    # R$ 59.90
+    econ = calculate_unit_economics(5990, "streetwear")
+    assert econ["price_brl"] == 59.90
+    assert econ["net_profit_brl"] == 18.72
+    assert econ["net_margin_pct"] == 31.3
+    assert econ["status"] == "viable"
+    assert "Margem sadia" in econ["recommendation"]
+    assert econ["kit_simulated_profit_brl"] == 35.91
+
+
+def test_calculate_unit_economics_zero_price():
+    """Verify zero price does not cause ZeroDivisionError and defaults safely."""
+    econ = calculate_unit_economics(0)
+    assert econ["price_brl"] == 0.0
+    assert econ["net_profit_brl"] == -26.20
+    assert econ["status"] == "risk_single_item"
+
+
+def test_export_client_report_attaches_unit_economics(tmp_path: Path):
+    """Verify export_client_report attaches unit_economics and unitEconomics to breakouts."""
+    report_data = _build_synthetic_report_data()
+    report_dir = tmp_path / "report_source"
+    report_dir.mkdir()
+    (report_dir / "report.json").write_text(json.dumps(report_data), encoding="utf-8")
+
+    out_dir = tmp_path / "web_public"
+    exported_path = export_client_report(report_dir=report_dir, output_dir=out_dir)
+
+    payload = json.loads(exported_path.read_text(encoding="utf-8"))
+    breakouts = payload.get("breakout_prints", [])
+    assert len(breakouts) > 0
+
+    for item in breakouts:
+        assert "unit_economics" in item
+        assert "unitEconomics" in item
+        ue = item["unit_economics"]
+        assert "price_brl" in ue
+        assert "shopee_commission_brl" in ue
+        assert "shopee_fixed_fee_brl" in ue
+        assert "blank_shirt_cost_brl" in ue
+        assert "print_cost_brl" in ue
+        assert "packaging_tax_brl" in ue
+        assert "total_cost_fees_brl" in ue
+        assert "net_profit_brl" in ue
+        assert "net_margin_pct" in ue
+        assert "status" in ue
+        assert ue["status"] in ("viable", "tight", "risk_single_item")
+        assert "recommendation" in ue
+        assert "kit_simulated_profit_brl" in ue
+

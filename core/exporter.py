@@ -292,6 +292,88 @@ def _derive_product_audit(title: str, theme: str, price_brl: float) -> dict[str,
     }
 
 
+def calculate_unit_economics(price_cents: int, theme: str | None = None) -> dict[str, Any]:
+    """Calculate granular unit economics, marketplace fees, and confection net margin.
+
+    Why: Confeccionistas need transparent unit-level profitability analysis to avoid
+    negative or compressed margins driven by Shopee's fixed fee and commission structure,
+    and to understand the financial leverage of multi-pack bundles (Kit 2).
+
+    Args:
+        price_cents: Retail listing price in integer cents (BRL).
+        theme: Optional product theme context.
+
+    Returns:
+        Dictionary containing fee breakdown, manufacturing costs, net margin, status,
+        smart recommendation, and Kit 2 profit simulation.
+    """
+    price_brl = round(price_cents / 100.0, 2)
+    shopee_commission_pct = 20.0
+    shopee_commission_brl = round(price_brl * 0.20, 2)
+    shopee_fixed_fee_brl = 4.00
+    blank_shirt_cost_brl = 14.00
+    print_cost_brl = 7.00
+    packaging_tax_brl = round(price_brl * 0.05 + 1.20, 2)
+    total_cost_fees_brl = round(
+        shopee_commission_brl
+        + shopee_fixed_fee_brl
+        + blank_shirt_cost_brl
+        + print_cost_brl
+        + packaging_tax_brl,
+        2,
+    )
+    net_profit_brl = round(price_brl - total_cost_fees_brl, 2)
+    net_margin_pct = round((net_profit_brl / max(price_brl, 1.0)) * 100, 1)
+
+    if net_profit_brl >= 7.00:
+        status = "viable"
+        recommendation = "Margem sadia para venda avulsa e em escala."
+    elif net_profit_brl >= 3.00:
+        status = "tight"
+        recommendation = (
+            "Venda unitária viável com controle rígido de insumos. Ideal ofertar kit complementar."
+        )
+    else:
+        status = "risk_single_item"
+        recommendation = (
+            "Alerta: Venda unitária com margem comprimida. "
+            "Venda em KITS de 2 ou 3 peças para diluir a taxa fixa de R$ 4,00 da Shopee!"
+        )
+
+    # Kit 2 simulation (price_brl * 1.85)
+    kit_price_brl = round(price_brl * 1.85, 2)
+    kit_commission_brl = round(kit_price_brl * 0.20, 2)
+    kit_fixed_fee_brl = 4.00
+    kit_blank_cost_brl = 28.00  # 14.00 * 2
+    kit_print_cost_brl = 14.00  # 7.00 * 2
+    kit_packaging_tax_brl = round(kit_price_brl * 0.05 + 1.20, 2)
+    kit_total_costs = round(
+        kit_commission_brl
+        + kit_fixed_fee_brl
+        + kit_blank_cost_brl
+        + kit_print_cost_brl
+        + kit_packaging_tax_brl,
+        2,
+    )
+    kit_simulated_profit_brl = round(kit_price_brl - kit_total_costs, 2)
+
+    return {
+        "price_brl": price_brl,
+        "shopee_commission_pct": shopee_commission_pct,
+        "shopee_commission_brl": shopee_commission_brl,
+        "shopee_fixed_fee_brl": shopee_fixed_fee_brl,
+        "blank_shirt_cost_brl": blank_shirt_cost_brl,
+        "print_cost_brl": print_cost_brl,
+        "packaging_tax_brl": packaging_tax_brl,
+        "total_cost_fees_brl": total_cost_fees_brl,
+        "net_profit_brl": net_profit_brl,
+        "net_margin_pct": net_margin_pct,
+        "status": status,
+        "recommendation": recommendation,
+        "kit_simulated_profit_brl": kit_simulated_profit_brl,
+    }
+
+
 def compute_fabric_radar(all_products: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Aggregate volume and share of dominant apparel construction patterns.
 
@@ -727,6 +809,10 @@ def export_client_report(
             theme=theme_name,
             price_brl=price_brl,
         )
+        unit_econ = calculate_unit_economics(
+            price_cents=price_cents,
+            theme=theme_name,
+        )
 
         breakout_prints.append(
             {
@@ -739,8 +825,19 @@ def export_client_report(
                 "velocity_label": vel_label,
                 "image_url": img_rel_url,
                 "audit": audit_data,
+                "unit_economics": unit_econ,
+                "unitEconomics": unit_econ,
             }
         )
+
+    # Attach unit economics to payload["breakouts"] if present in internal structure
+    if "breakouts" in payload and isinstance(payload["breakouts"], list):
+        for b in payload["breakouts"]:
+            if isinstance(b, dict):
+                b["unitEconomics"] = calculate_unit_economics(
+                    b.get("price_cents", 0), b.get("theme")
+                )
+                b["unit_economics"] = b["unitEconomics"]
 
     # --- Fabric Radar ---
     fabric_radar = compute_fabric_radar(all_products)

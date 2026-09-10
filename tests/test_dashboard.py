@@ -10,11 +10,14 @@ from sqlmodel import Session, SQLModel, create_engine
 
 from core import db
 from core.models import AgentLedger, StoreLead
+from dashboard.pitches import generate_subscriber_delivery_message
 from dashboard.supervision import (
     build_dossier_zip,
     get_crm_leads,
     get_ledger_history,
     get_or_generate_theme_card,
+    get_weekly_dossier_pdf_path,
+    get_weekly_pack_zip_path,
     update_lead_crm,
 )
 
@@ -293,5 +296,182 @@ def test_app_runs_with_crm_funnel_and_cards(isolated, db_session: Session) -> No
     at = AppTest.from_file("../dashboard/app.py", default_timeout=60)
     at.run()
     assert not at.exception
+
+
+def test_generate_subscriber_delivery_message_defaults() -> None:
+    """Verify subscriber delivery message contains all key components and default links."""
+    lead = StoreLead(
+        shop_id=999,
+        shop_name="Camisetas do Zé",
+        discovered_at=datetime.now(UTC).replace(tzinfo=None),
+        status="subscribed",
+        run_id="run_sub",
+    )
+    msg = generate_subscriber_delivery_message(lead)
+    assert "Fala Camisetas do Zé! Tudo bem?" in msg
+    assert "Aqui é da equipe TrendScout. Seu material da semana já está pronto e liberado:" in msg
+    assert "1. Dossiê Executivo da Semana (PDF anexo abaixo);" in msg
+    assert "2. Pack de Estampas & Fichas Técnicas para DTF/Silk (ZIP anexo);" in msg
+    assert "3. Seu acesso VIP exclusivo ao portal web:" in msg
+    assert "?vip=TS-VIP-2026" in msg
+    assert "Qualquer dúvida no planejamento das estampas desta semana, só chamar por aqui." in msg
+    assert "Boas vendas na produção!" in msg
+
+
+def test_generate_subscriber_delivery_message_custom_options() -> None:
+    """Verify delivery message handles custom portal URL, edition date, and empty name."""
+    lead = StoreLead(
+        shop_id=888,
+        shop_name="",
+        discovered_at=datetime.now(UTC).replace(tzinfo=None),
+        status="subscribed",
+        run_id="run_sub",
+    )
+    msg = generate_subscriber_delivery_message(
+        lead,
+        edition_date="Semana 37",
+        portal_url="https://vip.trendscout.com.br",
+    )
+    assert "Fala Parceiro! Tudo bem?" in msg
+    assert "Seu material da semana (Semana 37) já está pronto e liberado:" in msg
+    assert "https://vip.trendscout.com.br?vip=TS-VIP-2026" in msg
+
+
+def test_get_weekly_dossier_pdf_path(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify get_weekly_dossier_pdf_path locates dossier.pdf or returns None."""
+    monkeypatch.setattr(
+        "dashboard.supervision.get_latest_trend_report",
+        lambda: (None, None),
+    )
+    assert get_weekly_dossier_pdf_path() is None
+
+    # Report exists but no dossier.pdf
+    report_dir = tmp_path / "report"
+    report_dir.mkdir(parents=True)
+    monkeypatch.setattr(
+        "dashboard.supervision.get_latest_trend_report",
+        lambda: (report_dir, {}),
+    )
+    assert get_weekly_dossier_pdf_path() is None
+
+    # dossier.pdf exists
+    pdf_file = report_dir / "dossier.pdf"
+    pdf_file.write_bytes(b"mock pdf content")
+    assert get_weekly_dossier_pdf_path() == pdf_file
+
+
+def test_get_weekly_pack_zip_path_report_dir(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify get_weekly_pack_zip_path prioritizes latest report directory."""
+    report_dir = tmp_path / "report"
+    report_dir.mkdir(parents=True)
+    pack_file = report_dir / "pack_estampas_semana.zip"
+    pack_file.write_bytes(b"mock pack zip")
+
+    monkeypatch.setattr(
+        "dashboard.supervision.get_latest_trend_report",
+        lambda: (report_dir, {}),
+    )
+    assert get_weekly_pack_zip_path() == pack_file
+
+
+def test_get_weekly_pack_zip_path_fallbacks(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify get_weekly_pack_zip_path searches data/reports and web/public fallback locations."""
+    # 1. No report dir, no fallbacks -> None
+    monkeypatch.setattr(
+        "dashboard.supervision.get_latest_trend_report",
+        lambda: (None, None),
+    )
+
+    class DummySettings:
+        data_dir = tmp_path / "data"
+
+    dummy_settings = DummySettings()
+    monkeypatch.setattr("dashboard.supervision.get_settings", lambda: dummy_settings)
+    monkeypatch.setattr("dashboard.supervision.PROJECT_ROOT", tmp_path / "root")
+
+    assert get_weekly_pack_zip_path() is None
+
+    # 2. data/reports/latest_pack.zip exists -> returns data_pack
+    data_reports = dummy_settings.data_dir / "reports"
+    data_reports.mkdir(parents=True)
+    data_pack = data_reports / "latest_pack.zip"
+    data_pack.write_bytes(b"data pack content")
+    assert get_weekly_pack_zip_path() == data_pack
+
+    # 3. web/public/downloads fallback when data_pack does not exist
+    data_pack.unlink()
+    web_downloads = tmp_path / "root" / "web" / "public" / "downloads"
+    web_downloads.mkdir(parents=True)
+    web_pack = web_downloads / "pack_estampas_semana.zip"
+    web_pack.write_bytes(b"web pack content")
+    assert get_weekly_pack_zip_path() == web_pack
+
+
+def test_app_runs_with_subscriber_dispatch_hub(isolated) -> None:
+    """Verify Streamlit AppTest renders VIP subscriber cards and action buttons."""
+    from streamlit.testing.v1 import AppTest
+
+    # Setup report with dossier and pack
+    report_dir = isolated / "reports" / "2026-09-09_run"
+    report_dir.mkdir(parents=True)
+    (report_dir / "report.json").write_text(json.dumps({"products": []}), encoding="utf-8")
+    (report_dir / "dossier.pdf").write_bytes(b"%PDF-1.4 dummy pdf")
+    (report_dir / "pack_estampas_semana.zip").write_bytes(b"PK dummy zip")
+
+    # Clear cached report discovery
+    dashboard_supervision = pytest.importorskip("dashboard.supervision")
+    dashboard_supervision.get_latest_trend_report.clear()
+
+    # Add a subscribed lead to the isolated database
+    with db.session_scope() as session:
+        session.add(
+            StoreLead(
+                shop_id=9999,
+                shop_name="VIP Estamparia",
+                discovered_at=datetime.now(UTC).replace(tzinfo=None),
+                status="subscribed",
+                city="Brusque",
+                state="SC",
+                run_id="run_vip_test",
+            )
+        )
+        session.commit()
+
+    at = AppTest.from_file("../dashboard/app.py", default_timeout=60)
+    at.run()
+    assert not at.exception
+    subheaders = [s.value for s in at.subheader]
+    assert any("Despacho Semanal de Entregáveis (Assinantes VIP Ativos)" in sh for sh in subheaders)
+    dl_buttons = [db_btn.label for db_btn in at.download_button]
+    assert any("Baixar Dossiê PDF" in db_btn for db_btn in dl_buttons)
+    assert any("Baixar Pack de Estampas ZIP" in db_btn for db_btn in dl_buttons)
+    text_areas = [ta.value for ta in at.text_area]
+    assert any("Fala VIP Estamparia! Tudo bem?" in ta for ta in text_areas)
+
+
+def test_app_runs_with_no_subscribers_shows_callout(isolated) -> None:
+    """Verify empty-state callout appears when no leads are marked as subscribed."""
+    from streamlit.testing.v1 import AppTest
+
+    with db.session_scope() as session:
+        session.add(
+            StoreLead(
+                shop_id=5555,
+                shop_name="Lead Nao Assinante",
+                discovered_at=datetime.now(UTC).replace(tzinfo=None),
+                status="discovered",
+                run_id="run_non_sub",
+            )
+        )
+        session.commit()
+
+    at = AppTest.from_file("../dashboard/app.py", default_timeout=60)
+    at.run()
+    assert not at.exception
+    infos = [info.value for info in at.info]
+    assert any(
+        "Nenhum assinante ativo no momento. Quando um lead for marcado como 'subscribed'" in msg
+        for msg in infos
+    )
 
 

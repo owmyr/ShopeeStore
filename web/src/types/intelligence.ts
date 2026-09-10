@@ -23,6 +23,36 @@ export interface GarmentProductionSpecs {
 }
 
 /**
+ * Unit economics and real net margin simulation for apparel confection.
+ * Why: Empowers confeccionistas with clear financial visibility on Shopee fees,
+ * blank fabric costs, printing overheads, and multi-unit kit leverage.
+ */
+export interface UnitEconomics {
+  /** Retail listing price in BRL */
+  priceBrl: number;
+  /** Shopee 20% marketplace commission in BRL */
+  shopeeCommissionBrl: number;
+  /** Fixed transaction fee charged by Shopee per unit sold */
+  shopeeFixedFeeBrl: number;
+  /** Standard wholesale blank garment cost (malha 30.1 penteado) */
+  blankShirtCostBrl: number;
+  /** Industrial printing application cost (DTF/Silk) */
+  printCostBrl: number;
+  /** Simples Nacional tax (~5%) plus packaging label and polybag */
+  packagingTaxBrl: number;
+  /** Real net profit after deducting all factory costs and marketplace fees */
+  netProfitBrl: number;
+  /** Net margin percentage relative to retail price */
+  netMarginPct: number;
+  /** Health status of single-piece unit sale */
+  status: "viable" | "tight" | "risk_single_item";
+  /** Contextual recommendation for confeccionistas */
+  recommendation: string;
+  /** Simulated net profit if sold as a 2-piece combo kit (price * 1.85) */
+  kitSimulatedProfitBrl: number;
+}
+
+/**
  * Individual breakout product detected by velocity acceleration algorithms.
  */
 export interface BreakoutPrint {
@@ -44,6 +74,8 @@ export interface BreakoutPrint {
   shopeeItemCode: string;
   /** Actionable garment and manufacturing specs */
   specs: GarmentProductionSpecs;
+  /** Real net margin and unit economics breakdown */
+  unitEconomics?: UnitEconomics;
 }
 
 /**

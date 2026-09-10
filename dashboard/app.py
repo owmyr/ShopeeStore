@@ -21,6 +21,7 @@ from dashboard.pitches import (
     generate_instagram_url,
     generate_shopee_chat_pitch,
     generate_shopee_followup_pitch,
+    generate_subscriber_delivery_message,
 )
 from dashboard.supervision import (
     build_dossier_zip,
@@ -28,6 +29,8 @@ from dashboard.supervision import (
     get_latest_trend_report,
     get_ledger_history,
     get_or_generate_theme_card,
+    get_weekly_dossier_pdf_path,
+    get_weekly_pack_zip_path,
     start_background_agent,
     update_lead_crm,
 )
@@ -218,6 +221,12 @@ with tab_crm:
     theme_opportunities = payload.get("theme_opportunities", {}) if payload else {}
 
     if not leads:
+        st.subheader("🚀 Despacho Semanal de Entregáveis (Assinantes VIP Ativos)")
+        st.info(
+            "Nenhum assinante ativo no momento. Quando um lead for marcado como 'subscribed', "
+            "seus botões de despacho 1-clique aparecerão aqui."
+        )
+        st.divider()
         st.info(
             "No leads discovered yet. Run the Lead Scout in the sidebar "
             "or run: python __main__.py leads"
@@ -241,6 +250,94 @@ with tab_crm:
             "Assinantes Ativos",
             len([ld for ld in leads if ld.status == "subscribed"]),
         )
+
+        st.divider()
+        st.subheader("🚀 Despacho Semanal de Entregáveis (Assinantes VIP Ativos)")
+        subscribed_leads = [ld for ld in leads if ld.status == "subscribed"]
+        if not subscribed_leads:
+            st.info(
+                "Nenhum assinante ativo no momento. Quando um lead for marcado como 'subscribed', "
+                "seus botões de despacho 1-clique aparecerão aqui."
+            )
+        else:
+            dossier_pdf_path = get_weekly_dossier_pdf_path()
+            pack_zip_path = get_weekly_pack_zip_path()
+            for sub_lead in subscribed_leads:
+                with st.container(border=True):
+                    shop_display = sub_lead.shop_name or f"Loja #{sub_lead.shop_id}"
+                    loc_parts = [p for p in (sub_lead.city, sub_lead.state) if p]
+                    loc_display = " / ".join(loc_parts) if loc_parts else "Brasil"
+                    sub_date = (
+                        (sub_lead.last_contacted_at or sub_lead.discovered_at).strftime("%d/%m/%Y")
+                        if (sub_lead.last_contacted_at or sub_lead.discovered_at)
+                        else "Recente"
+                    )
+                    st.markdown(f"### {shop_display}")
+                    st.caption(f"📍 {loc_display} • 📅 Data de assinatura: {sub_date}")
+
+                    delivery_msg = generate_subscriber_delivery_message(sub_lead)
+                    phone = getattr(sub_lead, "phone", None)
+                    if phone:
+                        clean_phone = "".join(c for c in str(phone) if c.isdigit())
+                        whatsapp_url = (
+                            f"https://wa.me/{clean_phone}?text={urllib.parse.quote(delivery_msg)}"
+                        )
+                    else:
+                        whatsapp_url = f"https://wa.me/?text={urllib.parse.quote(delivery_msg)}"
+
+                    btn_c1, btn_c2, btn_c3 = st.columns([2, 1, 1])
+                    btn_c1.link_button(
+                        "📲 Abrir WhatsApp com Mensagem de Entrega",
+                        whatsapp_url,
+                        use_container_width=True,
+                    )
+
+                    key_id = sub_lead.id if sub_lead.id is not None else sub_lead.shop_id
+                    if dossier_pdf_path and dossier_pdf_path.exists():
+                        with open(dossier_pdf_path, "rb") as f:
+                            btn_c2.download_button(
+                                label="📥 Baixar Dossiê PDF",
+                                data=f.read(),
+                                file_name=dossier_pdf_path.name,
+                                mime="application/pdf",
+                                key=f"sub_dl_pdf_{key_id}",
+                                use_container_width=True,
+                            )
+                    else:
+                        btn_c2.download_button(
+                            label="📥 Baixar Dossiê PDF",
+                            data=b"",
+                            disabled=True,
+                            key=f"sub_dl_pdf_{key_id}",
+                            use_container_width=True,
+                        )
+
+                    if pack_zip_path and pack_zip_path.exists():
+                        with open(pack_zip_path, "rb") as f:
+                            btn_c3.download_button(
+                                label="📥 Baixar Pack de Estampas ZIP",
+                                data=f.read(),
+                                file_name=pack_zip_path.name,
+                                mime="application/zip",
+                                key=f"sub_dl_zip_{key_id}",
+                                use_container_width=True,
+                            )
+                    else:
+                        btn_c3.download_button(
+                            label="📥 Baixar Pack de Estampas ZIP",
+                            data=b"",
+                            disabled=True,
+                            key=f"sub_dl_zip_{key_id}",
+                            use_container_width=True,
+                        )
+
+                    st.text_area(
+                        "Mensagem de Entrega",
+                        value=delivery_msg,
+                        height=140,
+                        key=f"sub_msg_{key_id}",
+                    )
+        st.divider()
 
         f_cols = st.columns([2, 1, 1, 2])
         status_filter = f_cols[0].multiselect(

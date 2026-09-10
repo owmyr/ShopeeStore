@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Sparkles, Flame, Eye, Lock } from "lucide-react";
+import { Sparkles, Flame, Eye, Lock, Download } from "lucide-react";
 import type { BreakoutPrint } from "@/types/intelligence";
 import { PrintAuditModal } from "./PrintAuditModal";
 import { useVip } from "@/context/VipContext";
@@ -46,7 +46,7 @@ export function BreakoutPrints({ prints }: BreakoutPrintsProps): React.JSX.Eleme
   return (
     <section aria-labelledby="breakouts-heading" className="w-full space-y-6">
       {/* Section Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-emerald-400" aria-hidden="true" />
@@ -55,13 +55,34 @@ export function BreakoutPrints({ prints }: BreakoutPrintsProps): React.JSX.Eleme
             </h2>
           </div>
           <p className="mt-1 text-sm text-slate-400">
-            Modelos com maior taxa de tração diária no marketplace. Clique em qualquer estampa para inspecionar a ficha fabril.
+            Modelos com maior taxa de tração diária no marketplace. Clique em qualquer estampa para inspecionar a ficha fabril e unit economics.
           </p>
         </div>
 
-        <span className="self-start sm:self-auto rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
-          {isVip ? "12 Modelos Auditados (VIP Ativo)" : "3 de 12 Liberados • Amostra Aberta"}
-        </span>
+        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+          {isVip ? (
+            <a
+              href="/downloads/pack_estampas_semana.zip"
+              download="pack_estampas_semana.zip"
+              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/20 hover:bg-emerald-500/30 px-3.5 py-1.5 text-xs font-bold text-emerald-300 transition-all shadow-md active:scale-95"
+            >
+              <Download className="h-3.5 w-3.5 text-emerald-400" />
+              <span>📥 Baixar Pack Semanal de Estampas (ZIP)</span>
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={() => openCheckoutModal("Pack de Matrizes e Fichas de Estamparia")}
+              className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 px-3.5 py-1.5 text-xs font-bold text-amber-300 transition-all shadow-sm active:scale-95 cursor-pointer"
+            >
+              <span>📦 Pack com Matrizes & Fichas de Estamparia (Exclusivo VIP)</span>
+            </button>
+          )}
+
+          <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-300">
+            {isVip ? "12 Modelos Auditados (VIP Ativo)" : "3 de 12 Liberados • Amostra Aberta"}
+          </span>
+        </div>
       </div>
 
       {/* Grid of 12 Cards */}

@@ -5,8 +5,149 @@ import type {
   BreakoutPrint,
   FabricModelingMetric,
   StrategicDirectivesPayload,
+  UnitEconomics,
 } from "@/types/intelligence";
 import { FALLBACK_CLIENT_REPORT } from "./fallback-data";
+
+/**
+ * Normalizes or calculates unit economics for a breakout product.
+ * Why: Guarantees every product in the portal has real profit simulation metrics
+ * regardless of whether the incoming payload was generated with Track 9 or an earlier release.
+ *
+ * @param rawEcon Raw unit economics object from backend (may be undefined or snake_case)
+ * @param priceBrl Retail selling price in BRL
+ * @returns Fully typed and calculated UnitEconomics object
+ */
+export function normalizeUnitEconomics(rawEcon: any, priceBrl: number): UnitEconomics {
+  if (rawEcon && typeof rawEcon === "object") {
+    const rawPrice = Number(rawEcon.priceBrl ?? rawEcon.price_brl ?? priceBrl ?? 0);
+    const shopeeCommissionBrl = Number(
+      rawEcon.shopeeCommissionBrl ?? rawEcon.shopee_commission_brl ?? rawPrice * 0.20
+    );
+    const shopeeFixedFeeBrl = Number(
+      rawEcon.shopeeFixedFeeBrl ?? rawEcon.shopee_fixed_fee_brl ?? 4.0
+    );
+    const blankShirtCostBrl = Number(
+      rawEcon.blankShirtCostBrl ?? rawEcon.blank_shirt_cost_brl ?? 14.0
+    );
+    const printCostBrl = Number(rawEcon.printCostBrl ?? rawEcon.print_cost_brl ?? 7.0);
+    const packagingTaxBrl = Number(
+      rawEcon.packagingTaxBrl ?? rawEcon.packaging_tax_brl ?? rawPrice * 0.05 + 1.20
+    );
+    const netProfitBrl = Number(
+      rawEcon.netProfitBrl ??
+        rawEcon.net_profit_brl ??
+        rawPrice -
+          (shopeeCommissionBrl +
+            shopeeFixedFeeBrl +
+            blankShirtCostBrl +
+            printCostBrl +
+            packagingTaxBrl)
+    );
+    const netMarginPct = Number(
+      rawEcon.netMarginPct ??
+        rawEcon.net_margin_pct ??
+        (netProfitBrl / Math.max(rawPrice, 1.0)) * 100
+    );
+
+    let status: UnitEconomics["status"] = "viable";
+    if (
+      rawEcon.status === "viable" ||
+      rawEcon.status === "tight" ||
+      rawEcon.status === "risk_single_item"
+    ) {
+      status = rawEcon.status;
+    } else if (netProfitBrl < 3.0) {
+      status = "risk_single_item";
+    } else if (netProfitBrl < 7.0) {
+      status = "tight";
+    }
+
+    let recommendation = String(rawEcon.recommendation || "");
+    if (!recommendation) {
+      if (status === "risk_single_item") {
+        recommendation =
+          "Alerta: Venda unitária com margem comprimida. Venda em KITS de 2 ou 3 peças para diluir a taxa fixa de R$ 4,00 da Shopee!";
+      } else if (status === "tight") {
+        recommendation =
+          "Venda unitária viável com controle rígido de insumos. Ideal ofertar kit complementar.";
+      } else {
+        recommendation = "Margem sadia para venda avulsa e em escala.";
+      }
+    }
+
+    const kitSimulatedProfitBrl = Number(
+      rawEcon.kitSimulatedProfitBrl ?? rawEcon.kit_simulated_profit_brl ?? 0
+    );
+
+    return {
+      priceBrl: Number(rawPrice.toFixed(2)),
+      shopeeCommissionBrl: Number(shopeeCommissionBrl.toFixed(2)),
+      shopeeFixedFeeBrl: Number(shopeeFixedFeeBrl.toFixed(2)),
+      blankShirtCostBrl: Number(blankShirtCostBrl.toFixed(2)),
+      printCostBrl: Number(printCostBrl.toFixed(2)),
+      packagingTaxBrl: Number(packagingTaxBrl.toFixed(2)),
+      netProfitBrl: Number(netProfitBrl.toFixed(2)),
+      netMarginPct: Number(netMarginPct.toFixed(1)),
+      status,
+      recommendation,
+      kitSimulatedProfitBrl: Number(kitSimulatedProfitBrl.toFixed(2)),
+    };
+  }
+
+  // Fallback calculation directly from priceBrl
+  const p = Math.max(0, priceBrl);
+  const shopeeCommissionBrl = Number((p * 0.20).toFixed(2));
+  const shopeeFixedFeeBrl = 4.0;
+  const blankShirtCostBrl = 14.0;
+  const printCostBrl = 7.0;
+  const packagingTaxBrl = Number((p * 0.05 + 1.20).toFixed(2));
+  const totalCostFeesBrl = Number(
+    (
+      shopeeCommissionBrl +
+      shopeeFixedFeeBrl +
+      blankShirtCostBrl +
+      printCostBrl +
+      packagingTaxBrl
+    ).toFixed(2)
+  );
+  const netProfitBrl = Number((p - totalCostFeesBrl).toFixed(2));
+  const netMarginPct = Number(((netProfitBrl / Math.max(p, 1.0)) * 100).toFixed(1));
+
+  let status: UnitEconomics["status"] = "viable";
+  let recommendation = "Margem sadia para venda avulsa e em escala.";
+  if (netProfitBrl < 3.0) {
+    status = "risk_single_item";
+    recommendation =
+      "Alerta: Venda unitária com margem comprimida. Venda em KITS de 2 ou 3 peças para diluir a taxa fixa de R$ 4,00 da Shopee!";
+  } else if (netProfitBrl < 7.0) {
+    status = "tight";
+    recommendation =
+      "Venda unitária viável com controle rígido de insumos. Ideal ofertar kit complementar.";
+  }
+
+  const kitPriceBrl = Number((p * 1.85).toFixed(2));
+  const kitCommissionBrl = Number((kitPriceBrl * 0.20).toFixed(2));
+  const kitPackagingTaxBrl = Number((kitPriceBrl * 0.05 + 1.20).toFixed(2));
+  const kitTotalCost = Number(
+    (kitCommissionBrl + 4.0 + 28.0 + 14.0 + kitPackagingTaxBrl).toFixed(2)
+  );
+  const kitSimulatedProfitBrl = Number((kitPriceBrl - kitTotalCost).toFixed(2));
+
+  return {
+    priceBrl: Number(p.toFixed(2)),
+    shopeeCommissionBrl,
+    shopeeFixedFeeBrl,
+    blankShirtCostBrl,
+    printCostBrl,
+    packagingTaxBrl,
+    netProfitBrl,
+    netMarginPct,
+    status,
+    recommendation,
+    kitSimulatedProfitBrl,
+  };
+}
 
 /**
  * Normalizes raw report JSON from any pipeline version into the strict ClientReportPayload.
@@ -98,6 +239,9 @@ export function normalizeClientReport(raw: any): ClientReportPayload {
 
   const breakouts: BreakoutPrint[] = rawBreakouts.map((b: any, idx: number) => {
     const rawAudit = b.audit || b.specs || {};
+    const priceBrl = Number(b.priceBrl ?? b.price_brl ?? 0);
+    const unitEconomics = normalizeUnitEconomics(b.unit_economics || b.unitEconomics, priceBrl);
+
     return {
       id: String(b.id || `print-${idx}`),
       title: String(b.title || "Camiseta Estampada"),
@@ -105,7 +249,7 @@ export function normalizeClientReport(raw: any): ClientReportPayload {
       theme: String(b.theme || b.theme_name || "Geral"),
       dailySales: Number(b.dailySales ?? b.daily_velocity ?? 0),
       historicalSales: Number(b.historicalSales ?? b.sold_count ?? 0),
-      priceBrl: Number(b.priceBrl ?? b.price_brl ?? 0),
+      priceBrl,
       shopeeItemCode: String(b.shopeeItemCode || b.id || `item-${idx}`),
       specs: {
         cut: String(rawAudit.corte_modelagem || rawAudit.cut || "Oversized Boxy"),
@@ -115,6 +259,7 @@ export function normalizeClientReport(raw: any): ClientReportPayload {
         costEstimateBrl: Number(rawAudit.costEstimateBrl ?? rawAudit.cost_estimate_brl ?? 14.5),
         targetAudience: String(rawAudit.targetAudience || rawAudit.target_audience || "Jovem / Streetwear"),
       },
+      unitEconomics,
     };
   });
 

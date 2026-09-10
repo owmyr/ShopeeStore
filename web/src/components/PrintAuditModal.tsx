@@ -3,7 +3,20 @@
 import React, { useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Scissors, Layers, Printer, Percent, DollarSign, Users, ShieldCheck } from "lucide-react";
+import {
+  X,
+  Scissors,
+  Layers,
+  Printer,
+  Percent,
+  DollarSign,
+  Users,
+  ShieldCheck,
+  Calculator,
+  AlertTriangle,
+  CheckCircle2,
+  PackagePlus,
+} from "lucide-react";
 import type { BreakoutPrint } from "@/types/intelligence";
 
 /**
@@ -72,7 +85,7 @@ export function PrintAuditModal({ print, onClose }: PrintAuditModalProps): React
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 16 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-white/[0.12] bg-slate-900/95 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl"
+          className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-white/[0.12] bg-slate-900/95 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl"
         >
           {/* Close button */}
           <button
@@ -191,6 +204,142 @@ export function PrintAuditModal({ print, onClose }: PrintAuditModalProps): React
               </div>
             </div>
           </div>
+
+          {/* Simulador de Viabilidade & Lucro Líquido Real */}
+          {print.unitEconomics && (
+            <div className="mt-6 border-t border-white/[0.08] pt-5">
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <div className="flex items-center gap-2">
+                  <Calculator className="h-4 w-4 text-emerald-400" />
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                    Simulador de Viabilidade & Lucro Líquido Real
+                  </h4>
+                </div>
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                    print.unitEconomics.status === "viable"
+                      ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-300"
+                      : print.unitEconomics.status === "tight"
+                      ? "bg-amber-500/10 border border-amber-500/30 text-amber-300"
+                      : "bg-rose-500/10 border border-rose-500/30 text-rose-300"
+                  }`}
+                >
+                  {print.unitEconomics.status === "viable" && "Margem Sadia"}
+                  {print.unitEconomics.status === "tight" && "Margem Comprimida"}
+                  {print.unitEconomics.status === "risk_single_item" && "Alerta de Margem"}
+                </span>
+              </div>
+
+              {/* Decomposition Pills */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                {/* Preço de Venda */}
+                <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 shadow-sm backdrop-blur-md">
+                  <span className="block text-[11px] text-slate-400 font-medium mb-1">Preço de Venda</span>
+                  <span className="font-mono font-extrabold text-white text-sm sm:text-base">
+                    {formatCurrency(print.unitEconomics.priceBrl)}
+                  </span>
+                </div>
+
+                {/* Taxas Shopee */}
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.03] p-3 shadow-sm backdrop-blur-md">
+                  <span className="block text-[11px] text-amber-300/90 font-medium mb-1">Taxas Shopee</span>
+                  <span className="font-mono font-bold text-amber-300 text-xs sm:text-sm block">
+                    -{formatCurrency(print.unitEconomics.shopeeCommissionBrl + print.unitEconomics.shopeeFixedFeeBrl)}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block leading-tight">
+                    -R$ 4,00 (fixa) -20% (comissão)
+                  </span>
+                </div>
+
+                {/* Custo Fabril */}
+                <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/[0.03] p-3 shadow-sm backdrop-blur-md">
+                  <span className="block text-[11px] text-indigo-300/90 font-medium mb-1">Custo Fabril</span>
+                  <span className="font-mono font-bold text-indigo-300 text-xs sm:text-sm block">
+                    -{formatCurrency(print.unitEconomics.blankShirtCostBrl + print.unitEconomics.printCostBrl)}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block leading-tight">
+                    -R$ 14,00 (malha 30.1) -R$ 7,00 (DTF)
+                  </span>
+                </div>
+
+                {/* Lucro Líquido Real */}
+                <div
+                  className={`rounded-xl border p-3 shadow-sm backdrop-blur-md ${
+                    print.unitEconomics.status === "viable"
+                      ? "border-emerald-500/40 bg-emerald-500/[0.08]"
+                      : print.unitEconomics.status === "tight"
+                      ? "border-amber-500/40 bg-amber-500/[0.08]"
+                      : "border-rose-500/40 bg-rose-500/[0.08]"
+                  }`}
+                >
+                  <span className="block text-[11px] text-slate-400 font-medium mb-1">Lucro Líquido Real</span>
+                  <span
+                    className={`font-mono font-extrabold text-sm sm:text-base block ${
+                      print.unitEconomics.netProfitBrl >= 7.0
+                        ? "text-emerald-400"
+                        : print.unitEconomics.netProfitBrl >= 3.0
+                        ? "text-amber-400"
+                        : "text-rose-400"
+                    }`}
+                  >
+                    {formatCurrency(print.unitEconomics.netProfitBrl)}
+                  </span>
+                  <span
+                    className={`text-[10px] font-bold mt-0.5 block ${
+                      print.unitEconomics.status === "viable"
+                        ? "text-emerald-300"
+                        : print.unitEconomics.status === "tight"
+                        ? "text-amber-300"
+                        : "text-rose-300"
+                    }`}
+                  >
+                    {print.unitEconomics.netMarginPct > 0 ? `+${print.unitEconomics.netMarginPct}%` : `${print.unitEconomics.netMarginPct}%`} margem
+                  </span>
+                </div>
+              </div>
+
+              {/* Recommendation Callout */}
+              <div
+                className={`mt-3 flex items-start gap-2.5 rounded-xl border p-3 text-xs leading-relaxed ${
+                  print.unitEconomics.status === "viable"
+                    ? "border-emerald-500/20 bg-emerald-500/[0.04] text-emerald-200"
+                    : print.unitEconomics.status === "tight"
+                    ? "border-amber-500/20 bg-amber-500/[0.04] text-amber-200"
+                    : "border-rose-500/20 bg-rose-500/[0.04] text-rose-200"
+                }`}
+              >
+                {print.unitEconomics.status === "viable" ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                )}
+                <div>
+                  <p className="font-semibold">{print.unitEconomics.recommendation}</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    *Inclui Simples Nacional (~5%) e embalagem/etiqueta ({formatCurrency(print.unitEconomics.packagingTaxBrl)}).
+                  </p>
+                </div>
+              </div>
+
+              {/* Kit 2 Expansion Card */}
+              <div className="mt-3 rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-slate-900/60 p-3.5 backdrop-blur-md">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <PackagePlus className="h-4 w-4 text-indigo-400 flex-shrink-0" />
+                    <span className="text-xs font-bold text-white">
+                      Estratégia de Expansão: Alavancagem em Kit 2 Peças
+                    </span>
+                  </div>
+                  <span className="font-mono text-xs font-bold text-emerald-400 self-start sm:self-auto bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20">
+                    Lucro no Kit: {formatCurrency(print.unitEconomics.kitSimulatedProfitBrl)}
+                  </span>
+                </div>
+                <p className="mt-1.5 text-[11px] text-slate-300 leading-snug">
+                  Ao anunciar este modelo em Kit com 2 peças por {formatCurrency(Number((print.unitEconomics.priceBrl * 1.85).toFixed(2)))}, a taxa fixa de R$ 4,00 da Shopee é amortizada em uma única venda, expandindo o lucro líquido de {formatCurrency(print.unitEconomics.netProfitBrl)} para {formatCurrency(print.unitEconomics.kitSimulatedProfitBrl)} por pacote expedido.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Action Footer */}
           <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-white/[0.08] pt-4">
