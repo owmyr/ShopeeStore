@@ -28,8 +28,8 @@ from dashboard.supervision import (
     get_crm_leads,
     get_latest_trend_report,
     get_ledger_history,
-    get_or_generate_theme_card,
     get_weekly_dossier_pdf_path,
+    get_weekly_dossier_png_path,
     start_background_agent,
     update_lead_crm,
 )
@@ -440,18 +440,17 @@ with tab_crm:
                     use_container_width=True,
                 )
 
-                if lead.top_theme:
-                    card_path = get_or_generate_theme_card(lead.top_theme, report_dir)
-                    if card_path and card_path.exists():
-                        with open(card_path, "rb") as f:
-                            st.download_button(
-                                label="📥 Baixar Card do Nicho (PNG)",
-                                data=f.read(),
-                                file_name=f"card_{lead.top_theme}.png",
-                                mime="image/png",
-                                key=f"card_dl_{lead.id}",
-                                use_container_width=True,
-                            )
+                dossier_png = get_weekly_dossier_png_path()
+                if dossier_png and dossier_png.exists():
+                    with open(dossier_png, "rb") as f:
+                        st.download_button(
+                            label="📥 Baixar Dossiê Executivo (PNG para Chat)",
+                            data=f.read(),
+                            file_name=f"dossie_executivo_{report_dir.name}.png",
+                            mime="image/png",
+                            key=f"dossier_dl_{lead.id}",
+                            use_container_width=True,
+                        )
 
                 btn_cols = st.columns(3)
                 if lead.instagram:
@@ -481,7 +480,8 @@ with tab_crm:
                     opp_label = opp.get("label")
                     st.code(generate_shopee_chat_pitch(lead, opp_label), language="text")
                     st.caption(
-                        "💡 Dica: Baixe o Card do Nicho (PNG) acima e anexe nesta mensagem!"
+                        "💡 Dica: Anexe a imagem do Dossiê Executivo (PNG) "
+                        "baixada acima nesta mensagem!"
                     )
 
                     st.markdown("**2. Follow-up de Fechamento (Quando o Lojista Responde)**")

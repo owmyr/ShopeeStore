@@ -13,7 +13,6 @@ import pandas as pd
 import streamlit as st
 from sqlmodel import select
 
-from agents.dossier.agent import generate_theme_card
 from core import db
 from core.config import PROJECT_ROOT, get_settings
 from core.models import AgentLedger, StoreLead
@@ -58,28 +57,6 @@ def get_latest_trend_report() -> tuple[Path | None, dict[str, Any] | None]:
         return report_dir, payload
     except Exception:
         return report_dir, None
-
-
-def get_or_generate_theme_card(theme_slug: str, report_dir: Path | None = None) -> Path | None:
-    """Get path to theme card PNG, generating it if needed.
-
-    Why: Allows on-demand card generation for B2B outreach samples without
-    pre-generating cards for all themes, falling back gracefully if generation fails.
-    """
-    if not theme_slug:
-        return None
-    if report_dir is None:
-        report_dir, _ = get_latest_trend_report()
-    if not report_dir:
-        return None
-    cards_dir = report_dir / "cards"
-    card_path = cards_dir / f"{theme_slug}.png"
-    if card_path.exists():
-        return card_path
-    try:
-        return generate_theme_card(theme_slug, report_dir)
-    except Exception:
-        return None
 
 
 def get_crm_leads(status_filter: list[str] | None = None) -> list[StoreLead]:
@@ -177,4 +154,20 @@ def get_weekly_dossier_pdf_path() -> Path | None:
             return dossier_pdf
 
     return None
+
+
+def get_weekly_dossier_png_path() -> Path | None:
+    """Locate the weekly executive dossier PNG screenshot in the latest report directory.
+
+    Why: Allows dispatch mechanisms and supervision dashboards to access the compiled
+    executive intelligence infographic for Shopee chat outreach.
+    """
+    latest_report_dir, _ = get_latest_trend_report()
+    if latest_report_dir:
+        dossier_png = latest_report_dir / "dossier.png"
+        if dossier_png.exists():
+            return dossier_png
+
+    return None
+
 

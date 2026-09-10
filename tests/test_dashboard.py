@@ -15,8 +15,8 @@ from dashboard.supervision import (
     build_dossier_zip,
     get_crm_leads,
     get_ledger_history,
-    get_or_generate_theme_card,
     get_weekly_dossier_pdf_path,
+    get_weekly_dossier_png_path,
     update_lead_crm,
 )
 
@@ -194,67 +194,37 @@ def test_update_lead_crm_no_timestamp_for_other_statuses(db_session: Session) ->
     assert lead.last_contacted_at is None
 
 
-def test_get_or_generate_theme_card_empty_slug() -> None:
-    """Verify empty or falsy theme slug returns None immediately."""
-    assert get_or_generate_theme_card("") is None
-
-
-def test_get_or_generate_theme_card_no_report(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify missing report directory returns None gracefully."""
+def test_get_weekly_dossier_png_path(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify get_weekly_dossier_png_path locates dossier.png or returns None."""
     monkeypatch.setattr(
         "dashboard.supervision.get_latest_trend_report",
         lambda: (None, None),
     )
-    assert get_or_generate_theme_card("anime", report_dir=None) is None
+    assert get_weekly_dossier_png_path() is None
 
+    # Report exists but no dossier.png
+    report_dir = tmp_path / "report"
+    report_dir.mkdir(parents=True)
+    monkeypatch.setattr(
+        "dashboard.supervision.get_latest_trend_report",
+        lambda: (report_dir, {}),
+    )
+    assert get_weekly_dossier_png_path() is None
 
-def test_get_or_generate_theme_card_cached(tmp_path) -> None:
-    """Verify cached PNG is returned without invoking generation logic."""
-    cards_dir = tmp_path / "cards"
-    cards_dir.mkdir(parents=True)
-    card_file = cards_dir / "anime.png"
-    card_file.write_bytes(b"dummy_png_bytes")
-
-    result = get_or_generate_theme_card("anime", report_dir=tmp_path)
-    assert result == card_file
-
-
-def test_get_or_generate_theme_card_generates_on_demand(
-    tmp_path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Verify missing card invokes generate_theme_card on demand."""
-    expected_path = tmp_path / "cards" / "geek.png"
-
-    def mock_generate(theme_slug: str, report_dir):
-        return expected_path
-
-    monkeypatch.setattr("dashboard.supervision.generate_theme_card", mock_generate)
-    result = get_or_generate_theme_card("geek", report_dir=tmp_path)
-    assert result == expected_path
-
-
-def test_get_or_generate_theme_card_handles_exception(
-    tmp_path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Verify generation failure returns None instead of raising an unhandled exception."""
-
-    def mock_fail(theme_slug: str, report_dir):
-        raise RuntimeError("Browser launch failure")
-
-    monkeypatch.setattr("dashboard.supervision.generate_theme_card", mock_fail)
-    result = get_or_generate_theme_card("fail_theme", report_dir=tmp_path)
-    assert result is None
+    # dossier.png exists
+    png_file = report_dir / "dossier.png"
+    png_file.write_bytes(b"mock png content")
+    assert get_weekly_dossier_png_path() == png_file
 
 
 def test_app_runs_with_crm_funnel_and_cards(isolated, db_session: Session) -> None:
     """Verify Streamlit AppTest runs cleanly with multi-stage CRM leads and opportunity data."""
     from streamlit.testing.v1 import AppTest
 
-    # Setup report with opportunity metadata
+    # Setup report with opportunity metadata and weekly dossier png
     report_dir = isolated / "reports" / "2026-09-06_run"
-    cards_dir = report_dir / "cards"
-    cards_dir.mkdir(parents=True)
-    (cards_dir / "animes.png").write_bytes(b"card_bytes")
+    report_dir.mkdir(parents=True)
+    (report_dir / "dossier.png").write_bytes(b"mock png content")
 
     payload = {
         "products": [],
