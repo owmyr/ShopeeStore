@@ -164,29 +164,6 @@ def build_dossier_zip(report_dir_str: str) -> bytes:
     return buf.getvalue()
 
 
-def get_weekly_pack_zip_path() -> Path | None:
-    """Locate the weekly print pack ZIP archive across standard export paths.
-
-    Why: Gives callers an authoritative source to locate the generated printable
-    matrices and tech specs package for 1-click dispatch to VIP subscribers.
-    """
-    latest_report_dir, _ = get_latest_trend_report()
-    if latest_report_dir:
-        report_pack = latest_report_dir / "pack_estampas_semana.zip"
-        if report_pack.exists():
-            return report_pack
-
-    data_pack = get_settings().data_dir / "reports" / "latest_pack.zip"
-    if data_pack.exists():
-        return data_pack
-
-    web_pack = PROJECT_ROOT / "web" / "public" / "downloads" / "pack_estampas_semana.zip"
-    if web_pack.exists():
-        return web_pack
-
-    return None
-
-
 def get_weekly_dossier_pdf_path() -> Path | None:
     """Locate the weekly executive dossier PDF in the latest report directory.
 

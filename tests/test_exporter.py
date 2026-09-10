@@ -390,6 +390,9 @@ def test_export_client_report_attaches_unit_economics(tmp_path: Path):
     assert len(breakouts) > 0
 
     for item in breakouts:
+        assert "shopee_url" in item
+        assert "shopeeUrl" in item
+        assert item["shopee_url"].startswith("http")
         assert "unit_economics" in item
         assert "unitEconomics" in item
         ue = item["unit_economics"]

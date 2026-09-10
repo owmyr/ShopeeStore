@@ -251,6 +251,7 @@ export function normalizeClientReport(raw: any): ClientReportPayload {
       historicalSales: Number(b.historicalSales ?? b.sold_count ?? 0),
       priceBrl,
       shopeeItemCode: String(b.shopeeItemCode || b.id || `item-${idx}`),
+      shopeeUrl: b.shopeeUrl || b.shopee_url || undefined,
       specs: {
         cut: String(rawAudit.corte_modelagem || rawAudit.cut || "Oversized Boxy"),
         fabric: String(rawAudit.malha_sugerida || rawAudit.fabric || "100% Algodão 30.1 Penteado"),

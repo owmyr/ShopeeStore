@@ -30,5 +30,6 @@ web/.next/
 web/out/
 web/.vercel/
 web/*.log
+web/public/downloads/
 *.tsbuildinfo
 

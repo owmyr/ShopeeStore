@@ -72,6 +72,8 @@ export interface BreakoutPrint {
   priceBrl: number;
   /** Public Shopee item reference code for audit trail */
   shopeeItemCode: string;
+  /** Direct public Shopee competitor listing URL for market benchmarking */
+  shopeeUrl?: string;
   /** Actionable garment and manufacturing specs */
   specs: GarmentProductionSpecs;
   /** Real net margin and unit economics breakdown */

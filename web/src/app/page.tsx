@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Sparkles, ArrowRight, ShieldCheck, Zap, Download } from "lucide-react";
+import { Sparkles, ArrowRight, ShieldCheck, Zap } from "lucide-react";
 import type { ClientReportPayload } from "@/types/intelligence";
 import { FALLBACK_CLIENT_REPORT } from "@/lib/fallback-data";
 import { normalizeClientReport } from "@/lib/normalize-report";
@@ -102,10 +102,10 @@ export default function Home(): React.JSX.Element {
                   </div>
                   <button
                     type="button"
-                    onClick={() => openCheckoutModal("Pack de Matrizes e Fichas de Estamparia")}
+                    onClick={() => openCheckoutModal("Auditoria Completa dos Anúncios Concorrentes")}
                     className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 hover:bg-amber-400/20 px-3 py-1 text-xs font-bold text-amber-300 transition-all cursor-pointer"
                   >
-                    <span>📦 Pack com Matrizes & Fichas de Estamparia (Exclusivo VIP)</span>
+                    <span>🔒 Desbloquear 12 Anúncios Concorrentes (VIP)</span>
                   </button>
                 </div>
                 <h2 className="mt-2 text-2xl sm:text-3xl font-bold text-white">
@@ -141,18 +141,13 @@ export default function Home(): React.JSX.Element {
                   Você possui acesso irrestrito ao Radar Semanal
                 </h2>
                 <p className="mt-1 text-xs sm:text-sm text-slate-300 max-w-xl">
-                  Todas as 12 estampas em tração diária, diretrizes completas de maquinário, réguas de preço e download do pack de matrizes estão liberados neste dispositivo.
+                  Todas as 12 estampas em tração diária, diretrizes completas de maquinário, réguas de preço e auditoria concorrente com links diretos da Shopee estão liberados neste dispositivo.
                 </p>
               </div>
 
-              <a
-                href="/downloads/pack_estampas_semana.zip"
-                download="pack_estampas_semana.zip"
-                className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 px-5 py-3.5 text-xs sm:text-sm font-extrabold text-slate-950 shadow-xl shadow-emerald-500/25 transition-transform hover:scale-105 active:scale-95 flex-shrink-0"
-              >
-                <Download className="h-4 w-4 text-slate-950" />
-                <span>📥 Baixar Pack Semanal de Estampas (ZIP)</span>
-              </a>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-300">
+                ⭐ Acesso VIP Irrestrito Ativo
+              </span>
             </div>
             <div className="absolute -right-12 -bottom-12 h-44 w-44 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
           </section>

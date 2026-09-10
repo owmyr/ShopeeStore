@@ -814,6 +814,9 @@ def export_client_report(
             theme=theme_name,
         )
 
+        raw_link = item.get("url") or f"https://shopee.com.br/product/{item.get('shop_id')}/{item_id}"
+        shopee_link = raw_link if raw_link.startswith("http") else f"https://shopee.com.br{raw_link}"
+
         breakout_prints.append(
             {
                 "id": item_id,
@@ -824,6 +827,8 @@ def export_client_report(
                 "daily_velocity": daily_vel,
                 "velocity_label": vel_label,
                 "image_url": img_rel_url,
+                "shopee_url": shopee_link,
+                "shopeeUrl": shopee_link,
                 "audit": audit_data,
                 "unit_economics": unit_econ,
                 "unitEconomics": unit_econ,

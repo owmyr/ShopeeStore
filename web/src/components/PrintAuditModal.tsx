@@ -134,6 +134,9 @@ export function PrintAuditModal({ print, onClose }: PrintAuditModalProps): React
                   </span>
                 </div>
               </div>
+              <p className="mt-2 text-[11px] text-slate-400">
+                ⚖️ Referência de mercado pública (Shopee BR) para benchmarking e desenvolvimento de coleção autoral própria.
+              </p>
             </div>
           </div>
 
@@ -346,13 +349,25 @@ export function PrintAuditModal({ print, onClose }: PrintAuditModalProps): React
             <p className="text-[11px] text-slate-400">
               *Estimativas industriais calculadas para tiragens a partir de 50 peças.
             </p>
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full sm:w-auto rounded-xl bg-slate-800 hover:bg-slate-700 px-5 py-2 text-xs font-semibold text-white transition-colors"
-            >
-              Concluir Inspeção
-            </button>
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+              {print.shopeeUrl && (
+                <a
+                  href={print.shopeeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-orange-500/40 bg-orange-500/10 hover:bg-orange-500/20 px-4 py-2 text-xs font-bold text-orange-300 transition-all shadow-sm"
+                >
+                  🔗 Abrir Anúncio Concorrente na Shopee ↗
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full sm:w-auto rounded-xl bg-slate-800 hover:bg-slate-700 px-5 py-2 text-xs font-semibold text-white transition-colors"
+              >
+                Concluir Inspeção
+              </button>
+            </div>
           </div>
         </motion.div>
       </div>

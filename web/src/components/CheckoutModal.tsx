@@ -59,10 +59,10 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps): React.JS
   const whatsappUrl = `https://wa.me/5511999999999?text=${encodeURIComponent(baseMessage)}`;
 
   const benefits = [
-    "Radar Semanal Antecipado: novas estampas antes de saturarem na Shopee",
-    "Fichas Técnicas Prontas: gramatura, corte e técnica recomendada (DTF / Silk)",
-    "Filtro de Risco: pare de estampar o que entrou em guerra predatória de preço",
-    "Suporte Direto via WhatsApp para tirar dúvidas de posicionamento",
+    "Radar de 10 Nichos com Rankings e Ritmo de Vendas",
+    "Top 12 Estampas em Aceleração com Links Auditáveis",
+    "Simulador de Margem & Unit Economics da Shopee",
+    "Dossiê Executivo da Semana em PDF direto no WhatsApp",
     "Sem fidelidade: cancele quando quiser com 1 clique",
   ];
 

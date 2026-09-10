@@ -30,7 +30,6 @@ from dashboard.supervision import (
     get_ledger_history,
     get_or_generate_theme_card,
     get_weekly_dossier_pdf_path,
-    get_weekly_pack_zip_path,
     start_background_agent,
     update_lead_crm,
 )
@@ -261,7 +260,6 @@ with tab_crm:
             )
         else:
             dossier_pdf_path = get_weekly_dossier_pdf_path()
-            pack_zip_path = get_weekly_pack_zip_path()
             for sub_lead in subscribed_leads:
                 with st.container(border=True):
                     shop_display = sub_lead.shop_name or f"Loja #{sub_lead.shop_id}"
@@ -285,7 +283,7 @@ with tab_crm:
                     else:
                         whatsapp_url = f"https://wa.me/?text={urllib.parse.quote(delivery_msg)}"
 
-                    btn_c1, btn_c2, btn_c3 = st.columns([2, 1, 1])
+                    btn_c1, btn_c2 = st.columns([2, 1])
                     btn_c1.link_button(
                         "📲 Abrir WhatsApp com Mensagem de Entrega",
                         whatsapp_url,
@@ -296,7 +294,7 @@ with tab_crm:
                     if dossier_pdf_path and dossier_pdf_path.exists():
                         with open(dossier_pdf_path, "rb") as f:
                             btn_c2.download_button(
-                                label="📥 Baixar Dossiê PDF",
+                                label="📥 Baixar Dossiê Executivo (PDF)",
                                 data=f.read(),
                                 file_name=dossier_pdf_path.name,
                                 mime="application/pdf",
@@ -305,29 +303,10 @@ with tab_crm:
                             )
                     else:
                         btn_c2.download_button(
-                            label="📥 Baixar Dossiê PDF",
+                            label="📥 Baixar Dossiê Executivo (PDF)",
                             data=b"",
                             disabled=True,
                             key=f"sub_dl_pdf_{key_id}",
-                            use_container_width=True,
-                        )
-
-                    if pack_zip_path and pack_zip_path.exists():
-                        with open(pack_zip_path, "rb") as f:
-                            btn_c3.download_button(
-                                label="📥 Baixar Pack de Estampas ZIP",
-                                data=f.read(),
-                                file_name=pack_zip_path.name,
-                                mime="application/zip",
-                                key=f"sub_dl_zip_{key_id}",
-                                use_container_width=True,
-                            )
-                    else:
-                        btn_c3.download_button(
-                            label="📥 Baixar Pack de Estampas ZIP",
-                            data=b"",
-                            disabled=True,
-                            key=f"sub_dl_zip_{key_id}",
                             use_container_width=True,
                         )
 
