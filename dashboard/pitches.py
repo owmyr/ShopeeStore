@@ -42,9 +42,9 @@ def generate_shopee_followup_pitch(lead: StoreLead) -> str:
         f"Show de bola, {lead.shop_name}! No plano de assinatura mensal (R$ 97/mês) você recebe:\n"
         "1. Dossiê executivo em PDF toda segunda-feira às 07h com links diretos dos "
         "concorrentes;\n"
-        f"2. Acesso VIP irrestrito ao portal web em {portal_display} com todas as 15 estampas "
-        "desbloqueadas, fichas fabris completas e margens de todos os nichos;\n"
-        "3. Pack com matrizes prontas para gravação de tela e DTF digital.\n\n"
+        f"2. Acesso VIP irrestrito ao portal web em {portal_display} com todos os 10 nichos "
+        "monitorados, links auditáveis dos anúncios concorrentes e simulador de margem;\n"
+        "3. Diretrizes semanais de produção (o que acelerar no corte e o que pausar).\n\n"
         "Qual o melhor e-mail ou contato direto de vocês para eu enviar as opções de "
         "ativação do clube?"
     )
