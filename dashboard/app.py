@@ -481,7 +481,7 @@ with tab_crm:
                     opp_label = opp.get("label")
                     st.code(generate_shopee_chat_pitch(lead, opp_label), language="text")
                     st.caption(
-                        "💡 Anexe a imagem do Dossiê Semanal (PNG) nesta mensagem!"
+                        "💡 Dica: Baixe o Card do Nicho (PNG) acima e anexe nesta mensagem!"
                     )
 
                     st.markdown("**2. Follow-up de Fechamento (Quando o Lojista Responde)**")

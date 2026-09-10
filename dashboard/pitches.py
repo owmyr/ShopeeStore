@@ -33,7 +33,8 @@ def generate_shopee_followup_pitch(lead: StoreLead) -> str:
 
     Why: Once the merchant signals interest, this pitch transitions to the commercial value
     proposition of the recurring weekly intelligence subscription delivered on direct channels.
-    Highlights the PDF dossier, VIP unlocked portal access, and printable art packs.
+    Highlights the PDF dossier, VIP unlocked portal access, auditable competitor links,
+    and production directives.
     Strictly avoids forbidden trigger words like 'WhatsApp' or 'Pix' to prevent chat censorship.
     """
     settings = get_settings()
