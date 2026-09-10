@@ -232,8 +232,8 @@ class TestBuildWeeklyArtPack:
         img = Image.new("RGB", (800, 800), (30, 30, 30))
         img.save(ref_dir / "1001.jpg", format="JPEG")
 
-        # Execute pack generation
-        zip_path = build_weekly_art_pack(report_dir)
+        # Execute pack generation with copy_to_web=False to isolate test environment
+        zip_path = build_weekly_art_pack(report_dir, copy_to_web=False)
 
         assert zip_path.exists()
         assert zip_path.name == "pack_estampas_semana.zip"
@@ -292,3 +292,40 @@ class TestBuildWeeklyArtPack:
         empty_dir.mkdir()
         with pytest.raises(FileNotFoundError, match="report.json not found"):
             build_weekly_art_pack(empty_dir)
+
+    def test_build_weekly_art_pack_copy_to_web_behavior(
+        self, isolated: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Verify copy_to_web flag controls mirroring to web public downloads directory.
+
+        Why: Automated tests and internal analytical runs must not accidentally overwrite
+        web public assets, whereas production pipelines require synchronization with
+        web/public/downloads.
+        """
+        fake_root = isolated / "fake_project"
+        fake_root.mkdir()
+        fake_web_downloads = fake_root / "web" / "public" / "downloads"
+        monkeypatch.setattr("agents.image_harvester.art_pack.PROJECT_ROOT", fake_root)
+
+        report_dir = isolated / "reports" / "20260909T000000Z"
+        report_dir.mkdir(parents=True, exist_ok=True)
+        report_payload = {
+            "products": [
+                {
+                    "item_id": 5001,
+                    "title": "Camiseta Rock Caveira Estampada",
+                    "price_cents": 4990,
+                    "velocity_per_day": 12.0,
+                    "theme": "rock",
+                }
+            ]
+        }
+        (report_dir / "report.json").write_text(json.dumps(report_payload), encoding="utf-8")
+
+        # 1. When copy_to_web=False, downloads directory must not be created or written to
+        build_weekly_art_pack(report_dir, copy_to_web=False)
+        assert not fake_web_downloads.exists()
+
+        # 2. When copy_to_web=True, downloads directory must receive the mirror zip
+        build_weekly_art_pack(report_dir, copy_to_web=True)
+        assert (fake_web_downloads / "pack_estampas_semana.zip").exists()

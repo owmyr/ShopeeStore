@@ -31,5 +31,4 @@ web/out/
 web/.vercel/
 web/*.log
 *.tsbuildinfo
-web/public/downloads/
 

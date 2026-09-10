@@ -107,8 +107,8 @@ def crop_print_artwork(image_path: Path, output_path: Path) -> Path:
 
     cropped = working_img.crop((left, top, right, bottom))
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    # Save with maximum fidelity and zero chroma subsampling to retain micro-details for DTF RIP
-    cropped.save(output_path, format="JPEG", quality=95, subsampling=0)
+    # Save with quality=85 and optimize=True for production fidelity and lightweight downloads
+    cropped.save(output_path, format="JPEG", quality=85, optimize=True)
     return output_path
 
 
@@ -425,7 +425,7 @@ def _resolve_or_fetch_product_image(
     # T-shirt chest graphic shape
     draw.rectangle([160, 180, 640, 620], fill=(30, 41, 59), outline=(15, 23, 42), width=4)
     draw.text((200, 380), f"ESTAMPA #{item_id}", fill=(255, 255, 255))
-    img.save(placeholder, format="JPEG", quality=95)
+    img.save(placeholder, format="JPEG", quality=85, optimize=True)
     return placeholder
 
 
@@ -433,19 +433,24 @@ def build_weekly_art_pack(
     report_dir: Path,
     output_zip_path: Path | None = None,
     *,
-    max_items_per_theme: int = 3,
+    max_themes: int = 10,
+    max_items_per_theme: int = 2,
+    copy_to_web: bool = True,
 ) -> Path:
     """Build an organized production ZIP archive with mockups, 1:1 crops, and tech sheets.
 
     Why: Print shops, apparel brand creators, and DTF technicians require an immediately
     actionable weekly package containing visual mockups, cropped production-ready graphics,
     standardized manufacturing spec sheets, and a master catalog to produce the highest-velocity
-    commercial shirt designs found on Shopee BR.
+    commercial shirt designs found on Shopee BR. Capping to top themes and items keeps the download
+    lightweight (~3-5MB) for web delivery.
 
     Args:
         report_dir: Path to directory containing report.json.
         output_zip_path: Optional explicit path for the output zip file.
-        max_items_per_theme: Maximum products to package per niche folder (default: 3).
+        max_themes: Maximum top market themes to include in the pack (default: 10).
+        max_items_per_theme: Maximum products to package per niche folder (default: 2).
+        copy_to_web: Whether to mirror the archive to web/public/downloads for web deployment.
 
     Returns:
         Path to the generated zip archive.
@@ -483,7 +488,7 @@ def build_weekly_art_pack(
         total_vel = sum(float(p.get("velocity_per_day") or 0.0) for p in prods)
         return (total_vel, len(prods))
 
-    sorted_themes = sorted(by_theme.items(), key=_theme_sort_key, reverse=True)
+    sorted_themes = sorted(by_theme.items(), key=_theme_sort_key, reverse=True)[:max_themes]
 
     # Temporary staging root for building pack before compression
     staging_dir = Path(tempfile.mkdtemp(prefix="art_pack_staging_"))
@@ -538,11 +543,16 @@ def build_weekly_art_pack(
                 mockup_src = _resolve_or_fetch_product_image(prod, theme_name, staging_dir)
                 mockup_dest = item_dir / "mockup_referencia.jpg"
                 if mockup_src and mockup_src.exists():
-                    shutil.copy2(mockup_src, mockup_dest)
+                    # Why: Resave mockup image at quality 85 to normalize formats, apply JPEG
+                    # optimization, and prevent large uncompressed photos from bloating the pack.
+                    with Image.open(mockup_src) as m_img:
+                        if m_img.mode != "RGB":
+                            m_img = m_img.convert("RGB")
+                        m_img.save(mockup_dest, format="JPEG", quality=85, optimize=True)
                 else:
                     # Fallback blank image
                     fallback_img = Image.new("RGB", (800, 800), (240, 240, 240))
-                    fallback_img.save(mockup_dest, format="JPEG", quality=95)
+                    fallback_img.save(mockup_dest, format="JPEG", quality=85, optimize=True)
 
                 # 2. Generate 1:1 high-density artwork crop
                 crop_dest = item_dir / "grafismo_recorte.jpg"
@@ -551,13 +561,6 @@ def build_weekly_art_pack(
                 # 3. Write individual technical sheet
                 ficha_dest = item_dir / "ficha_tecnica.txt"
                 ficha_dest.write_text(_format_ficha_tecnica(spec), encoding="utf-8")
-
-                # If multiple products in theme and this is the champion (#1), also place
-                # copy in root of niche_dir for quick inspection
-                if not is_single_item and p_idx == 0:
-                    shutil.copy2(mockup_dest, niche_dir / "mockup_referencia.jpg")
-                    shutil.copy2(crop_dest, niche_dir / "grafismo_recorte.jpg")
-                    shutil.copy2(ficha_dest, niche_dir / "ficha_tecnica.txt")
 
             theme_idx += 1
 
@@ -615,13 +618,15 @@ def build_weekly_art_pack(
         shutil.copy2(target_zip, latest_pack_path)
 
         # 2. web/public/downloads/pack_estampas_semana.zip
-        web_downloads_dir = PROJECT_ROOT / "web" / "public" / "downloads"
-        web_downloads_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(target_zip, web_downloads_dir / "pack_estampas_semana.zip")
+        if copy_to_web:
+            web_downloads_dir = PROJECT_ROOT / "web" / "public" / "downloads"
+            web_downloads_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(target_zip, web_downloads_dir / "pack_estampas_semana.zip")
 
         logger.info(
-            "Weekly art pack generated: %s (mirrored to latest_pack.zip & downloads)",
+            "Weekly art pack generated: %s (mirrored to latest_pack.zip%s)",
             target_zip,
+            " & downloads" if copy_to_web else "",
         )
         return target_zip
 
