@@ -107,6 +107,26 @@ def start_background_agent(module: str, args: list[str], log_name: str) -> None:
         )
 
 
+def dispatch_shopee_chat_outreach(
+    lead_id: int | None = None,
+    limit: int = 10,
+    dry_run: bool = False,
+    headful: bool = True,
+) -> None:
+    """Dispatch Shopee Chat outreach agent in the background."""
+    args = ["--limit", str(limit)]
+    if dry_run:
+        args.append("--dry-run")
+    if headful:
+        args.append("--headful")
+    else:
+        args.append("--headless")
+    if lead_id is not None:
+        args.extend(["--lead-id", str(lead_id)])
+
+    start_background_agent("agents.outreach.shopee_chat", args, "outreach_chat.log")
+
+
 @st.cache_data(show_spinner="Building ZIP...")
 def build_dossier_zip(report_dir_str: str) -> bytes:
     """Build an in-memory ZIP containing the commercial summary CSV and reference images."""

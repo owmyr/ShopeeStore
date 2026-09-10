@@ -13,6 +13,7 @@ from core.models import AgentLedger, StoreLead
 from dashboard.pitches import generate_subscriber_delivery_message
 from dashboard.supervision import (
     build_dossier_zip,
+    dispatch_shopee_chat_outreach,
     get_crm_leads,
     get_ledger_history,
     get_weekly_dossier_pdf_path,
@@ -401,4 +402,21 @@ def test_app_runs_with_no_subscribers_shows_callout(isolated) -> None:
         for msg in infos
     )
 
+def test_dispatch_shopee_chat_outreach_calls_start_background_agent(monkeypatch) -> None:
+    """Verify dispatch_shopee_chat_outreach builds correct args and spawns detached agent."""
+    called_with = []
 
+    def mock_start(module: str, args: list[str], log_name: str) -> None:
+        called_with.append((module, args, log_name))
+
+    monkeypatch.setattr("dashboard.supervision.start_background_agent", mock_start)
+
+    dispatch_shopee_chat_outreach(lead_id=42, limit=5, dry_run=True, headful=False)
+    assert len(called_with) == 1
+    mod, args, log = called_with[0]
+    assert mod == "agents.outreach.shopee_chat"
+    assert "--limit" in args and "5" in args
+    assert "--dry-run" in args
+    assert "--headless" in args
+    assert "--lead-id" in args and "42" in args
+    assert log == "outreach_chat.log"

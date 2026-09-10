@@ -25,6 +25,7 @@ from dashboard.pitches import (
 )
 from dashboard.supervision import (
     build_dossier_zip,
+    dispatch_shopee_chat_outreach,
     get_crm_leads,
     get_latest_trend_report,
     get_ledger_history,
@@ -377,6 +378,34 @@ with tab_crm:
                     "1ª mensagem do Chat da Shopee para demonstrar valor e propor a assinatura."
                 )
 
+        with st.container(border=True):
+            st.markdown("#### 🤖 Automação de Disparo no Chat da Shopee")
+            auto_c1, auto_c2, auto_c3, auto_c4 = st.columns([1.5, 1, 1, 2])
+            outreach_dry_run = auto_c2.checkbox(
+                "Simulação (--dry-run)", value=True, help="Executa e digita sem enviar"
+            )
+            outreach_headful = auto_c3.checkbox(
+                "Janela Visível", value=True, help="Abre o navegador visível para inspeção"
+            )
+            discovered_count = len([ld for ld in leads if ld.status == "discovered"])
+            batch_target = min(10, discovered_count)
+            if auto_c1.button(
+                f"🚀 Disparar Lote Seguro ({batch_target} Lojas)",
+                use_container_width=True,
+                disabled=discovered_count == 0,
+            ):
+                dispatch_shopee_chat_outreach(
+                    limit=10, dry_run=outreach_dry_run, headful=outreach_headful
+                )
+                st.success(
+                    f"Disparo de outreach para {batch_target} lojas iniciado em segundo plano! "
+                    "Acompanhe o log ou a tela."
+                )
+            auto_c4.caption(
+                f"📊 **Fila de Prospecção**: **{discovered_count}** lojas disponíveis com status "
+                "`discovered`.\nCadência segura: 10 lojas/dia com intervalos de 90s a 180s."
+            )
+
         legacy_status_map = {
             "contacted": "sample_sent",
             "interested": "engaged",
@@ -434,11 +463,21 @@ with tab_crm:
                 if opp.get("label"):
                     st.caption(f"🎯 Oportunidade: **{opp['label']}**")
 
-                st.link_button(
-                    "💬 Conversar no Chat da Shopee",
+                chat_c1, chat_c2 = st.columns([1, 1])
+                chat_c1.link_button(
+                    "💬 Conversar Manualmente",
                     f"https://shopee.com.br/shop/{lead.shop_id}",
                     use_container_width=True,
                 )
+                if chat_c2.button(
+                    "⚡ Disparar Dossiê (1-Clique)",
+                    key=f"auto_send_{lead.id}",
+                    use_container_width=True,
+                ):
+                    dispatch_shopee_chat_outreach(
+                        lead_id=lead.id, limit=1, dry_run=False, headful=True
+                    )
+                    st.success(f"Disparo iniciado para {shop_display}!")
 
                 dossier_png = get_weekly_dossier_png_path()
                 if dossier_png and dossier_png.exists():

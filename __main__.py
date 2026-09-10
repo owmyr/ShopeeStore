@@ -42,6 +42,29 @@ def main() -> int:
     export_parser.add_argument(
         "--report-dir", type=str, default=None, help="path to specific report directory"
     )
+
+    outreach_parser = sub.add_parser(
+        "outreach-chat", help="send weekly dossier and outreach messages via Shopee Chat"
+    )
+    outreach_parser.add_argument(
+        "--lead-id", type=int, default=None, help="specific lead ID to message"
+    )
+    outreach_parser.add_argument("--limit", type=int, default=10, help="max leads to process")
+    outreach_parser.add_argument(
+        "--dry-run", action="store_true", help="simulate without sending or committing status"
+    )
+    outreach_parser.add_argument(
+        "--headful", action="store_true", default=True, help="run with visible browser window"
+    )
+    outreach_parser.add_argument(
+        "--headless", dest="headful", action="store_false", help="run browser in headless mode"
+    )
+    outreach_parser.add_argument(
+        "--delay-min", type=int, default=90, help="min seconds between messages"
+    )
+    outreach_parser.add_argument(
+        "--delay-max", type=int, default=180, help="max seconds between messages"
+    )
     args = parser.parse_args()
 
     if args.command in ("run", "run-now"):
@@ -120,6 +143,22 @@ def main() -> int:
         report_dir = Path(args.report_dir) if args.report_dir else None
         out = export_client_report(report_dir=report_dir)
         print(f"client report exported to: {out}")
+        return 0
+
+    if args.command == "outreach-chat":
+        import logging
+
+        logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+        from agents.outreach.shopee_chat import send_shopee_outreach_batch
+
+        res = send_shopee_outreach_batch(
+            limit=args.limit,
+            dry_run=args.dry_run,
+            headful=args.headful,
+            lead_id=args.lead_id,
+            delay_range=(args.delay_min, args.delay_max),
+        )
+        print(f"outreach result: {res}")
         return 0
 
     return 1
