@@ -26,23 +26,28 @@
 - If the project does not have any testing tools, scripts, MCP tools, skills, etc. available for testing, ask the user whether testing should be skipped.
 
 ## Project
-Shopee BR camisetas trend intelligence. Weekly scrape of Shopee Brazil best-sellers
-(camisetas category), LLM-assisted trend clustering, Streamlit supervision dashboard.
-Agents: Trend Scout (MVP). Design brief, supplier comms, listing agents deferred.
+Shopee BR camisetas trend intelligence & B2B merchant outreach ecosystem.
+Weekly scrape of Shopee Brazil best-sellers (camisetas category), adaptive seed discovery,
+LLM-assisted clustering (Gemini API with Ollama fallback), weekly executive dossier generation (PDF/PNG),
+automated Shopee Chat outreach, and an air-gapped subscriber portal on Next.js/Vercel.
 
 ## Layout
-- `core/` - config, db, models, ledger, llm, scheduler (shared infrastructure)
-- `agents/trend_scout/` - scraper, analyzer, agent orchestration, prompts, filter (print detection)
-- `agents/image_harvester/` - downloads printed-shirt images into `data/reference/<theme>/`
-- `agents/pulse/` - daily top-20 scrape + spike detection (no LLM, printed only)
+- `core/` - config, db, models, ledger, llm (Gemini/Ollama), exporter, scheduler (shared infrastructure)
+- `agents/trend_scout/` - scraper, analyzer, agent orchestration, adaptive seeds, prompts, filter (print detection)
+- `agents/image_harvester/` - downloads printed-shirt reference images into `data/reference/<theme>/`
+- `agents/pulse/` - daily top-20 scrape + spike detection (lightweight, printed only)
+- `agents/dossier/` - compiles weekly executive intelligence dossier (multi-page PDF & high-res PNG) via Playwright & Jinja2
+- `agents/lead_scout/` - discovers & enriches merchant store leads (CNPJ, BrasilAPI, Instagram handles, niche classification)
+- `agents/outreach/` - automates Shopee Chat messaging with attached `dossier.png`, typing jitter, and anti-ban safeguards
+- `web/` - Next.js (App Router), TypeScript, Tailwind CSS client portal deployed to Vercel (air-gapped via `client_report.json`)
+- `dashboard/` - Streamlit supervision UI & CRM management hub
 - `agents/` is the Python application package; it is not a skills directory.
 - `.opencode/skills/` - curated OpenCode-only project skills for this repository
 - `.agents/skills/` - external skills managed by the `npx skills` CLI
 - `skills-lock.json` - lockfile for skills installed by the Skills CLI
-- `dashboard/` - Streamlit supervision UI
 - `scripts/` - Windows Task Scheduler install/uninstall
-- `tests/` - pytest
-- `data/` - gitignored: sqlite db, reports, ledger jsonl, reference images, error screenshots
+- `tests/` - pytest test suite (221 tests)
+- `data/` - gitignored: sqlite db, reports, ledger jsonl, reference images, error screenshots, shopee_auth.json
 
 ## Skill installation
 - OpenCode discovers both `.opencode/skills/` and `.agents/skills/`.
@@ -62,8 +67,8 @@ Agents: Trend Scout (MVP). Design brief, supplier comms, listing agents deferred
 ## Conventions
 - Python 3.11+, `ruff check .` and `pytest` must pass before every commit.
 - Conventional commits: `feat:`, `chore:`, `test:`, `docs:`, `fix:`, `refactor:`.
-- LLM: local Ollama only. Model read from config (`LLM_MODEL`), never hardcoded.
-- LLM batching: max 25 product titles per call (small-model JSON discipline).
+- LLM: Google Gemini API (`GEMINI_API_KEY` with model pool) with local Ollama fallback (`Qwen2.5:14b`).
+- LLM batching: max 25 product titles per call for JSON structure discipline.
 - Scraping: polite delays 3-6s/page with jitter; pause every 25 items;
   screenshot to `data/` on error; `--dry-run` flag (5 products) for dev.
 - Shopee auth: anonymous scraping is blocked (login wall). Session lives in
@@ -71,6 +76,6 @@ Agents: Trend Scout (MVP). Design brief, supplier comms, listing agents deferred
   `python -m agents.trend_scout.scraper --login`. Never commit auth state.
 - Observability: every agent run must log to the ledger (`core/ledger.py`) -
   agent name, start/end, inputs hash, outputs path, status, error.
-- No cloud LLM calls. No secrets in code; use `.env` (copy from `.env.example`).
+- Credentials: No secrets in code; use `.env` (copy from `.env.example`).
 - All money values stored as integer cents (BRL). Prices parsed from
   pt-BR format ("1.234,56").
