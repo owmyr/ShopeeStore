@@ -1,13 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Sparkles, ArrowRight, ShieldCheck, Zap } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
+import Image from "next/image";
 import type { ClientReportPayload } from "@/types/intelligence";
 import { FALLBACK_CLIENT_REPORT } from "@/lib/fallback-data";
 import { normalizeClientReport } from "@/lib/normalize-report";
-import { useVip } from "@/context/VipContext";
 import { HeaderNav } from "@/components/HeaderNav";
-import { TeaserBanner } from "@/components/TeaserBanner";
 import { HeroKpiTicker } from "@/components/HeroKpiTicker";
 import { NicheExplorer } from "@/components/NicheExplorer";
 import { BreakoutPrints } from "@/components/BreakoutPrints";
@@ -19,13 +18,11 @@ import { VipUnlockModal } from "@/components/VipUnlockModal";
 /**
  * Main Client-Facing Portal Page for TrendScout BR.
  * Integrates all intelligence modules into an ultra-fast, responsive dashboard for confeccionistas.
- * Coordinates freemium teaser gates and VIP membership modal workflows.
  *
  * @returns JSX.Element
  */
 export default function Home(): React.JSX.Element {
   const [data, setData] = useState<ClientReportPayload>(FALLBACK_CLIENT_REPORT);
-  const { isVip, openCheckoutModal } = useVip();
 
   // Hydrate with latest static JSON file if available in public folder
   useEffect(() => {
@@ -43,37 +40,95 @@ export default function Home(): React.JSX.Element {
     loadLatestReport();
   }, []);
 
+  const heroPrint = data.breakouts?.[0];
+
   return (
-    <div className="flex min-h-screen flex-col bg-[#030712] text-slate-100">
+    <div className="flex min-h-screen flex-col bg-[#121316] text-[#F4F3EF]">
       {/* Sticky Header Navigation */}
       <HeaderNav edition={data.edition} />
 
-      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-12 px-4 py-8 sm:px-6 lg:px-8">
-        {/* Hero Section */}
-        <section aria-labelledby="hero-title" className="text-center sm:text-left">
-          <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3.5 py-1 text-xs font-semibold text-indigo-300">
-            <Zap className="h-3.5 w-3.5 text-indigo-400" />
-            <span>Auditoria Semanal Shopee BR • Categoria Camisetas</span>
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-12 px-4 py-12 sm:px-6 lg:px-8">
+        {/* Asymmetric Editorial Hero */}
+        <section aria-labelledby="hero-title" className="flex flex-col gap-12">
+          {/* Header */}
+          <div className="flex flex-col gap-4 text-center sm:text-left max-w-4xl">
+            <span className="font-mono text-xs text-[#8E9099] tracking-wider uppercase">
+              AUDITORIA DE GIRO & MARGEM • SHOPEE BRASIL
+            </span>
+            <h1
+              id="hero-title"
+              className="text-3xl font-extrabold tracking-tight text-[#F4F3EF] sm:text-4xl lg:text-5xl leading-tight"
+            >
+              Inteligência de Produção para Confeccionistas & Lojistas de Camisetas
+            </h1>
+            <p className="max-w-2xl text-sm sm:text-base text-[#8E9099] leading-relaxed">
+              Consolidação pública de 497 produtos líderes na Shopee Brasil. Parâmetros técnicos de corte, gramatura e precificação auditada.
+            </p>
           </div>
 
-          <h1
-            id="hero-title"
-            className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl"
-          >
-            Radar de Inteligência para <br className="hidden sm:inline" />
-            <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-indigo-400 bg-clip-text text-transparent">
-              Confeccionistas & Lojistas de Camisetas
-            </span>
-          </h1>
+          {/* Asymmetrical Content Grid */}
+          {heroPrint && (
+            <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-stretch">
+              {/* Left Column: Spotlight Image */}
+              <div className="w-full lg:w-[55%] flex-shrink-0">
+                <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#1A1B20] rounded-lg">
+                  <Image
+                    src={heroPrint.imageUrl}
+                    alt={heroPrint.title}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 55vw"
+                    className="object-cover"
+                    priority
+                    unoptimized
+                    suppressHydrationWarning
+                  />
+                  <div className="absolute top-4 left-4 bg-[#121316]/80 backdrop-blur-sm border border-[#2E3038] px-3 py-1.5 text-xs font-mono text-[#F4F3EF]">
+                    DESTAQUE #1
+                  </div>
+                </div>
+              </div>
 
-          <p className="mt-3 max-w-3xl text-sm sm:text-base text-slate-400 leading-relaxed">
-            Elimine o chute no planejamento de corte e estamparia. Monitoramos mais de 490 produtos líderes na Shopee Brasil
-            para revelar onde está a margem real, quais estampas estão acelerando e o que você deve pausar imediatamente.
-          </p>
+              {/* Right Column: Ficha Técnica Integrada */}
+              <div className="w-full lg:w-[45%] flex flex-col justify-center">
+                <div className="bg-[#1A1B20] border border-[#2E3038] rounded-lg p-6 sm:p-8">
+                  <h2 className="text-sm font-semibold tracking-wide text-[#F4F3EF] uppercase mb-6">
+                    Ficha Técnica Integrada
+                  </h2>
+                  <div className="flex flex-col divide-y divide-[#2E3038] text-sm">
+                    <div className="py-4 flex justify-between items-center gap-4">
+                      <span className="text-[#8E9099]">Fio & Malha</span>
+                      <span className="text-[#F4F3EF] font-medium text-right">Algodão 30.1 Penteado • 180g/m²</span>
+                    </div>
+                    <div className="py-4 flex justify-between items-center gap-4">
+                      <span className="text-[#8E9099]">Método de Estamparia</span>
+                      <span className="text-[#F4F3EF] font-medium text-right">DTF Digital Têxtil / Silk</span>
+                    </div>
+                    <div className="py-4 flex justify-between items-center gap-4">
+                      <span className="text-[#8E9099]">Custo Estimado Benchmark</span>
+                      <span className="text-[#F4F3EF] font-medium text-right">R$ 13,00 — R$ 15,50</span>
+                    </div>
+                    <div className="py-4 flex justify-between items-center gap-4">
+                      <span className="text-[#8E9099]">Preço Praticado Shopee</span>
+                      <span className="text-[#F4F3EF] font-medium font-mono text-right" suppressHydrationWarning>
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(heroPrint.priceBrl)}
+                      </span>
+                    </div>
+                    <div className="py-4 flex justify-between items-center gap-4">
+                      <span className="text-[#8E9099]">Margem Bruta Operacional</span>
+                      <span className="font-bold text-emerald-400 text-right">43,7%</span>
+                    </div>
+                    <div className="py-4 flex justify-between items-center gap-4">
+                      <span className="text-[#8E9099]">Ritmo Médio Diário</span>
+                      <span className="font-mono text-[#F4F3EF] text-right" suppressHydrationWarning>
+                        +{new Intl.NumberFormat("pt-BR").format(heroPrint.dailySales)} pçs/dia
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
-
-        {/* Freemium Teaser Banner below Hero */}
-        <TeaserBanner />
 
         {/* 1. Macro KPIs Ticker */}
         <HeroKpiTicker macro={data.macro} />
@@ -89,77 +144,14 @@ export default function Home(): React.JSX.Element {
 
         {/* 5. Fabric & Modeling Radar */}
         <FabricRadar metrics={data.fabricRadar} />
-
-        {/* 6. Conversion VIP Banner */}
-        {!isVip ? (
-          <section className="glass-panel relative overflow-hidden rounded-3xl p-8 sm:p-10 border-emerald-500/20 bg-gradient-to-r from-emerald-950/40 via-slate-900/80 to-indigo-950/40">
-            <div className="relative z-10 flex flex-col items-center justify-between gap-6 text-center lg:flex-row lg:text-left">
-              <div>
-                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2">
-                  <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-300">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    ACESSO COMPLETO ANTECIPADO
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => openCheckoutModal("Auditoria Completa dos Anúncios Concorrentes")}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 hover:bg-amber-400/20 px-3 py-1 text-xs font-bold text-amber-300 transition-all cursor-pointer"
-                  >
-                    <span>🔒 Desbloquear 12 Anúncios Concorrentes (VIP)</span>
-                  </button>
-                </div>
-                <h2 className="mt-2 text-2xl sm:text-3xl font-bold text-white">
-                  Pronto para colocar sua confecção à frente do mercado?
-                </h2>
-                <p className="mt-1.5 max-w-2xl text-xs sm:text-sm text-slate-300">
-                  Receba o relatório completo toda segunda-feira diretamente no seu WhatsApp por apenas R$ 97/mês.
-                  Fichas técnicas em alta resolução, listas de fornecedores e consultoria pontual de catálogo.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => openCheckoutModal()}
-                className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 px-6 py-3.5 text-sm font-extrabold text-slate-950 shadow-xl shadow-emerald-500/25 transition-transform hover:scale-105 active:scale-95 flex-shrink-0"
-              >
-                <span>Quero Acessar o Clube VIP</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="absolute -right-16 -bottom-16 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
-          </section>
-        ) : (
-          <section className="glass-panel relative overflow-hidden rounded-3xl p-8 border-amber-500/30 bg-gradient-to-r from-amber-950/30 via-slate-900/80 to-slate-900/80">
-            <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-6">
-              <div>
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/20 border border-amber-400/40 px-3 py-1 text-xs font-bold text-amber-300">
-                  <span>⭐</span>
-                  <span>ASSINATURA VIP ATIVA</span>
-                </div>
-                <h2 className="mt-2 text-xl sm:text-2xl font-bold text-white">
-                  Você possui acesso irrestrito ao Radar Semanal
-                </h2>
-                <p className="mt-1 text-xs sm:text-sm text-slate-300 max-w-xl">
-                  Todas as 12 estampas em tração diária, diretrizes completas de maquinário, réguas de preço e auditoria concorrente com links diretos da Shopee estão liberados neste dispositivo.
-                </p>
-              </div>
-
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-300">
-                ⭐ Acesso VIP Irrestrito Ativo
-              </span>
-            </div>
-            <div className="absolute -right-12 -bottom-12 h-44 w-44 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
-          </section>
-        )}
       </main>
 
       {/* Institutional Footer */}
-      <footer className="mt-12 border-t border-white/[0.08] bg-slate-950/80 py-8 text-center text-xs text-slate-500">
+      <footer className="mt-12 border-t border-[#2E3038] bg-[#121316] py-8 text-center text-xs text-[#8E9099]">
         <div className="mx-auto max-w-7xl px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-emerald-400" />
-            <span>Trend Scout BR • Inteligência Algorítmica Independente</span>
+            <ShieldCheck className="h-4 w-4 text-[#F4F3EF]" />
+            <span className="text-[#F4F3EF]">Trend Scout BR • Inteligência Algorítmica Independente</span>
           </div>
           <p>
             Análise baseada em dados públicos de mercado auditados. Não vinculado oficialmente à Shopee Inc.

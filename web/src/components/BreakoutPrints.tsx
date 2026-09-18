@@ -2,8 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
-import { Sparkles, Flame, Eye, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import type { BreakoutPrint } from "@/types/intelligence";
 import { PrintAuditModal } from "./PrintAuditModal";
 import { useVip } from "@/context/VipContext";
@@ -18,8 +17,7 @@ interface BreakoutPrintsProps {
 
 /**
  * Showcase of top 12 accelerating breakout printed t-shirts with freemium gating.
- * Renders high-resolution previews for unlocked items, and applies curiosity-inducing
- * blurs, lock tags, and checkout triggers for items 4 to 12 on free tiers.
+ * Designed as a curated 3:4 portrait lookbook grid.
  *
  * @param props BreakoutPrintsProps
  * @returns JSX.Element
@@ -44,62 +42,41 @@ export function BreakoutPrints({ prints }: BreakoutPrintsProps): React.JSX.Eleme
   };
 
   return (
-    <section aria-labelledby="breakouts-heading" className="w-full space-y-6">
+    <section aria-labelledby="breakouts-heading" className="w-full mt-12 space-y-8">
       {/* Section Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between border-b border-[#2E3038] pb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-emerald-400" aria-hidden="true" />
-            <h2 id="breakouts-heading" className="text-xl font-bold tracking-tight text-white sm:text-2xl">
-              Estampas Breakout: Top 12 em Aceleração
-            </h2>
-          </div>
-          <p className="mt-1 text-sm text-slate-400">
+          <h2 id="breakouts-heading" className="text-lg font-semibold tracking-wide text-[#F4F3EF] uppercase">
+            Estampas Breakout: Top 12 em Aceleração
+          </h2>
+          <p className="mt-1 text-sm text-[#8E9099]">
             Modelos com maior taxa de tração diária no marketplace. Referência de mercado para inspiração e desenvolvimento de coleção própria autoral.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
-          {isVip ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-emerald-300">
-              ⭐ 12 Anúncios Concorrentes Auditados (VIP Ativo)
-            </span>
-          ) : (
+        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+          {!isVip && (
             <button
               type="button"
               onClick={() => openCheckoutModal("Auditoria Completa dos Anúncios Concorrentes")}
-              className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 px-3.5 py-1.5 text-xs font-bold text-amber-300 transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="text-xs font-semibold text-[#8E9099] hover:text-[#F4F3EF] transition-colors uppercase tracking-wider"
             >
-              <span>🔒 Desbloquear 12 Anúncios Concorrentes (VIP)</span>
+              Desbloquear Todos
             </button>
           )}
-
-          <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-300">
-            {isVip ? "12 Modelos Liberados" : "3 de 12 Liberados • Amostra Aberta"}
-          </span>
         </div>
       </div>
 
       {/* Grid of 12 Cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {(prints || []).map((print, index) => {
           const isLocked = !isVip && index >= 3;
-          const displayTitle = isLocked
-            ? `${print.title.slice(0, 26)}... [🔒 VIP]`
-            : print.title;
-
+          
           return (
-            <motion.div
+            <div
               key={print.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: index * 0.03 }}
               onClick={() => handleCardClick(print, isLocked)}
-              className={`group glass-panel glass-panel-hover relative cursor-pointer overflow-hidden rounded-2xl p-3.5 focus:outline-none focus:ring-2 ${
-                isLocked
-                  ? "border-amber-500/25 hover:border-amber-400/50 focus:ring-amber-400"
-                  : "focus:ring-emerald-400"
-              }`}
+              className="group flex flex-col gap-3 cursor-pointer outline-none"
               tabIndex={0}
               role="button"
               onKeyDown={(e) => {
@@ -110,81 +87,61 @@ export function BreakoutPrints({ prints }: BreakoutPrintsProps): React.JSX.Eleme
               }}
               aria-label={
                 isLocked
-                  ? `Desbloquear estampa VIP: ${displayTitle}`
+                  ? `Desbloquear estampa VIP: ${print.title}`
                   : `Ver auditoria técnica de ${print.title}`
               }
             >
-              {/* 1:1 Aspect Ratio Image Frame */}
-              <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-slate-800">
+              {/* 3:4 Aspect Ratio Image Frame */}
+              <div className={`relative aspect-[3/4] w-full overflow-hidden bg-[#1A1B20] border border-transparent transition-colors ${!isLocked ? 'group-hover:border-[#3A3D47]' : ''}`}>
                 <Image
                   src={print.imageUrl}
-                  alt={isLocked ? "Estampa exclusiva VIP" : print.title}
+                  alt={isLocked ? "Acesso Restrito" : print.title}
                   fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  className={`object-cover transition-transform duration-500 group-hover:scale-105 ${
-                    isLocked ? "filter blur-xl scale-110" : ""
-                  }`}
+                  sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  className="object-cover"
                   unoptimized
+                  suppressHydrationWarning
                 />
 
-                {/* Floating Velocity Tag: 100% visible and vivid even when locked */}
-                <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1 rounded-full bg-slate-950/90 backdrop-blur-md px-2.5 py-1 text-[11px] font-black text-amber-300 border border-amber-400/40 shadow-lg">
-                  <Flame className="h-3.5 w-3.5 text-amber-400 animate-pulse" />
-                  <span>+{print.dailySales} pçs/dia</span>
-                </div>
-
-                {/* Center Frosted Overlay for Locked VIP Prints */}
-                {isLocked ? (
-                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-slate-950/50 backdrop-blur-[4px] p-3 text-center transition-colors group-hover:bg-slate-950/60">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-400/20 border border-amber-400/40 text-amber-300 shadow-glow">
-                      <Lock className="h-5 w-5" />
-                    </div>
-                    <span className="inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 px-3 py-1.5 text-xs font-black text-slate-950 shadow-md">
-                      Desbloquear Estampa VIP
+                {/* Overlay for Locked Items */}
+                {isLocked && (
+                  <div className="absolute inset-0 bg-[#121316]/80 flex flex-col items-center justify-center gap-2">
+                    <Lock className="h-5 w-5 text-[#8E9099]" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[#F4F3EF]">
+                      Acesso Restrito
                     </span>
-                  </div>
-                ) : (
-                  /* Quick Inspect Hover Overlay for Unlocked Items */
-                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-950/60 opacity-0 backdrop-blur-[2px] transition-opacity duration-200 group-hover:opacity-100">
-                    <span className="flex items-center gap-1.5 rounded-xl bg-emerald-500 px-3.5 py-1.5 text-xs font-bold text-slate-950 shadow-lg">
-                      <Eye className="h-3.5 w-3.5" />
-                      Inspecionar Ficha
+                    <span className="text-[10px] text-[#8E9099] uppercase tracking-wider">
+                      Assinantes Pro
                     </span>
                   </div>
                 )}
               </div>
 
-              {/* Content & Metadata */}
-              <div className="mt-3 space-y-1.5">
-                <div className="flex items-center justify-between text-[11px] text-slate-400">
-                  <span className="rounded-md bg-white/[0.05] px-1.5 py-0.5 text-indigo-300 font-medium">
-                    {print.theme}
-                  </span>
-                  <span className="font-mono text-slate-500">
-                    {isLocked ? "ID-••••••••" : print.shopeeItemCode}
-                  </span>
-                </div>
-
-                <h3 className="line-clamp-2 text-xs sm:text-sm font-semibold text-white leading-snug group-hover:text-emerald-300 transition-colors">
-                  {displayTitle}
-                </h3>
-
-                {/* Price & Historical Volume */}
-                <div className="flex items-center justify-between pt-1 border-t border-white/[0.06]">
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-mono text-sm sm:text-base font-extrabold text-emerald-400">
+              {/* Metadata */}
+              {!isLocked && (
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-semibold text-[#8E9099] uppercase tracking-wider">
+                      {print.theme}
+                    </span>
+                    <span className="text-[10px] text-[#8E9099] border-l border-[#2E3038] pl-2">
+                      {print.shopeeItemCode}
+                    </span>
+                  </div>
+                  <h3 className="text-sm text-[#F4F3EF] leading-snug truncate">
+                    {print.title}
+                  </h3>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="font-mono text-sm font-semibold text-[#F4F3EF]" suppressHydrationWarning>
                       {formatCurrency(print.priceBrl)}
                     </span>
-                  </div>
-                  <div className="text-[11px] text-slate-400">
-                    <span className="text-slate-500">Histórico: </span>
-                    <span className="font-semibold text-slate-300">
-                      {new Intl.NumberFormat("pt-BR").format(print.historicalSales)}
+                    <span className="font-mono text-xs text-[#8E9099]" suppressHydrationWarning>
+                      +{print.dailySales} pçs/dia
                     </span>
                   </div>
                 </div>
-              </div>
-            </motion.div>
+              )}
+            </div>
           );
         })}
       </div>

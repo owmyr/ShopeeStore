@@ -9,19 +9,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        obsidian: {
-          DEFAULT: "#030712",
-          surface: "#0b1329",
-          card: "rgba(15, 23, 42, 0.65)",
-          border: "rgba(255, 255, 255, 0.08)",
+        graphite: {
+          DEFAULT: "#121316",
+          surface: "#1A1B20",
+          card: "#22232A",
+          border: "#2E3038",
+          subtle: "#3A3D47",
+          muted: "#8E9099",
+          dim: "#5E606A",
         },
+      },
+      aspectRatio: {
+        "3/4": "3 / 4",
       },
       fontFamily: {
         sans: ["var(--font-plus-jakarta-sans)", "system-ui", "sans-serif"],
-      },
-      boxShadow: {
-        glow: "0 0 25px -5px rgba(99, 102, 241, 0.25)",
-        "glow-emerald": "0 0 25px -5px rgba(16, 185, 129, 0.25)",
       },
     },
   },

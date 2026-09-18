@@ -27,10 +27,15 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  other: {
+    "darkreader-lock": "",
+    "color-scheme": "dark",
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#030712",
+  themeColor: "#121316",
+  colorScheme: "dark",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -49,8 +54,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>): React.JSX.Element {
   return (
-    <html lang="pt-BR" className={`${plusJakartaSans.variable} dark`}>
-      <body className="min-h-screen bg-[#030712] text-slate-100 antialiased selection:bg-emerald-500 selection:text-slate-950">
+    <html
+      lang="pt-BR"
+      className={`${plusJakartaSans.variable} dark`}
+      suppressHydrationWarning
+    >
+      <head>
+        <meta name="darkreader-lock" content="" />
+        <meta name="color-scheme" content="dark" />
+      </head>
+      <body
+        className="min-h-screen bg-[#121316] text-[#F4F3EF] antialiased selection:bg-[#E27D44] selection:text-white"
+        suppressHydrationWarning
+      >
         <VipProvider>{children}</VipProvider>
       </body>
     </html>
